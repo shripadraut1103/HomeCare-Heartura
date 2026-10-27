@@ -8,64 +8,50 @@ HomeCare/
 ├── src/                                 # All application source code (`@/*` alias)
 │   │
 │   ├── app/                             # ⭐ Expo Router routes ONLY (file = screen)
-│   │   ├── _layout.tsx                 # Root layout: providers + root navigator
-│   │   ├── index.tsx                   # "/" — initial screen
-│   │   ├── (auth)/                     # Route group: login, register (no URL segment)
-│   │   │   └── _layout.tsx             # Stack navigator for auth flow
-│   │   └── (tabs)/                     # Route group: home, chat, profile tabs
-│   │       └── _layout.tsx             # Tab navigator
+│   │   ├── _layout.tsx                 # Root layout: Redux Provider, PersistGate, protected routes
+│   │   ├── (auth)/                     # Route group, reachable only when logged OUT
+│   │   │   ├── _layout.tsx             # Stack navigator for auth flow
+│   │   │   └── login.tsx               # "/login" → domain/auth/screens/LoginScreen
+│   │   └── (tabs)/                     # Route group, reachable only when logged IN
+│   │       ├── _layout.tsx             # Tab navigator (components/AppTabs)
+│   │       └── index.tsx               # "/" → domain/home/screens/HomeScreen
 │   │
 │   ├── store/                           # ⭐ Redux State Management
 │   │   ├── storeConfig.ts              # Store initialization & setup
 │   │   ├── rootReducer.ts              # Combines all reducers
 │   │   ├── hooks.ts                    # Custom Redux hooks (useAppDispatch, useAppSelector)
-│   │   ├── SelectorHooks.ts            # Memoized selectors
-│   │   ├── persistConfig.ts            # Redux Persist configuration
+│   │   ├── persistConfig.ts            # Redux Persist configuration (whitelist: auth only)
+│   │   ├── secureStorage.ts            # Persist engine: Keychain/Keystore via expo-secure-store
 │   │   ├── common-reducer/             # Global reducers (Toast, etc.)
-│   │   ├── constants/                  # Store action constants
-│   │   └── interfaces/                 # AppState TypeScript interfaces
+│   │   ├── constants/                  # StoreConstants.ts — slice-name constants
+│   │   └── interfaces/                 # AppState.ts — shape of the whole root state
 │   │
-│   ├── domain/                          # Feature modules (Feature-based architecture)
-│   │   ├── auth/                       # Authentication module
-│   │   │   ├── screens/                # Auth UI screens (Login, Register, etc.)
-│   │   │   ├── components/             # Auth-specific components
-│   │   │   ├── store/                  # Auth Redux (reducer, actions, async-actions)
-│   │   │   └── store/services/         # API calls for auth
-│   │   │
-│   │   ├── chat/                       # Chat module (similar structure)
-│   │   ├── profile/                    # Profile module
-│   │   ├── vitals/                     # Vitals/Health data module
-│   │   └── home/                       # Home/Dashboard module
+│   ├── domain/                          # ⭐ Feature modules — each feature OWNS all its code
+│   │   ├── auth/
+│   │   │   ├── screens/                # LoginScreen.tsx (+ LoginScreen.test.tsx)
+│   │   │   ├── components/             # Auth-only components
+│   │   │   ├── hooks/                  # useLoginForm.ts
+│   │   │   ├── schemas/                # loginSchema.ts (zod)
+│   │   │   ├── interfaces/             # AuthInterfaces.ts — AuthState, LoginResponse
+│   │   │   └── store/
+│   │   │       ├── AuthReducer.ts
+│   │   │       ├── async-actions/      # AuthAsyncActions.ts
+│   │   │       └── services/           # AuthServices.ts — the ONLY place auth API calls live
+│   │   └── home/
+│   │       └── screens/                # HomeScreen.tsx (placeholder)
 │   │
-│   ├── components/                      # Shared/Reusable components
-│   │   ├── Toast/                      # Global toast notifications
-│   │   ├── Loader/                     # Loading spinner
-│   │   ├── TextInput/                  # Reusable input field
-│   │   ├── ButtonComponent/            # Reusable button
-│   │   ├── DatePicker/                 # Date picker component
-│   │   ├── ScreenGuard/                # Security wrapper
-│   │   └── Icons/                      # Icon components
+│   ├── components/                      # Shared UI used by 2+ features
+│   │   ├── ThemedText.tsx, ThemedView.tsx, BrandLogo.tsx, AppTabs.tsx
+│   │   └── ui/                         # Button.tsx, TextField.tsx, FormTextField.tsx
 │   │
-│   ├── services/                        # Core application services
-│   │   ├── NotificationService.ts      # FCM notification handling
-│   │   ├── ScreenTracker.ts            # Track current screen (for notifications)
-│   │   └── [Other services]/           # API clients, auth services, etc.
-│   │
-│   ├── hooks/                           # Custom React hooks
-│   │   └── [Custom hooks]/             # Reusable hook logic
-│   │
-│   ├── utils/                           # Utility functions
-│   │   └── [Utility functions]/        # Helpers, formatters, validators
-│   │
-│   ├── constants/                       # App-wide constants
-│   │   ├── theme.ts                    # Colors, fonts, spacing
-│   │   └── [Other constants]/
-│   │
-│   ├── config/                          # Environment & app configuration
-│   │   └── [Config files]/
-│   │
-│   └── types/                           # Shared TypeScript types & interfaces
-│       └── [Type definitions]/
+│   ├── hooks/                           # Shared hooks: useTheme.ts, useColorScheme(.web).ts
+│   ├── utils/                           # Shared helpers: getErrorMessage.ts
+│   ├── constants/                       # Theme.ts — colors, fonts, spacing, radius
+│   ├── config/                          # Build-time config & shared plumbing
+│   │   ├── EnvConfig.ts                # EXPO_PUBLIC_APP_ENV / EXPO_PUBLIC_API_URL
+│   │   └── AxiosConfig.ts              # (planned) shared Axios instance + get/post helpers
+│   ├── types/                           # Types shared by 2+ features: ServiceInterfaces.ts
+│   └── global.css                       # Web-only CSS variables (imported in app/_layout)
 │
 ├── assets/                              # Images, fonts, icons (`@/assets/*` alias)
 │                                        # Kept at root: referenced by app.json
@@ -73,7 +59,9 @@ HomeCare/
 │
 └── [Other root files]
     ├── app.json                         # Expo config (native behaviour, plugins)
-    ├── package.json                     # "main": "expo-router/entry"
+    ├── package.json                     # "main": "expo-router/entry"; scripts: lint, typecheck, test
+    ├── .env                             # Local dev defaults for EXPO_PUBLIC_* (no secrets)
+    ├── eslint.config.js / .prettierrc   # Lint + format + file-naming rules
     └── android/ ios/                    # GENERATED by Expo prebuild — never edit
                                          # by hand, never commit (gitignored)
 ```
@@ -87,6 +75,42 @@ HomeCare/
    `src/app` is missing, so a non-route `app/` folder at the root is a trap.
 3. **Import through the alias:** `@/components/...`, `@/domain/...`,
    `@/assets/images/...` — no deep relative paths (`../../../`).
+4. **Each feature owns its code.** Screens, components, hooks, schemas, interfaces,
+   reducer, thunks and services of a feature live under `src/domain/<feature>/`.
+   Code moves to a shared folder (`components/`, `hooks/`, `utils/`, `types/`) only
+   once a **second** feature needs it.
+5. **Services live only inside features** (`domain/<feature>/store/services/`).
+   There is no top-level `services/` folder. Shared plumbing they rely on — the
+   Axios instance, env config — lives in `src/config/`.
+6. **Where types go:** feature types → `domain/<feature>/interfaces/`; form types →
+   inferred from the feature's zod schema; types shared by 2+ features → `src/types/`;
+   root state shape → `src/store/interfaces/AppState.ts`.
+
+### Naming conventions (enforced by ESLint `check-file`)
+
+| What | Convention | Example |
+|------|-----------|---------|
+| Components & screens | `PascalCase.tsx` | `TextField.tsx`, `LoginScreen.tsx` |
+| Hooks | `useCamelCase.ts` | `useTheme.ts`, `useLoginForm.ts` |
+| Reducers, thunks, services, interfaces, constants, config | `PascalCase.ts` | `AuthReducer.ts`, `AuthServices.ts`, `Theme.ts`, `EnvConfig.ts` |
+| Utils, schemas, reducer helpers, store setup | `camelCase.ts` | `getErrorMessage.ts`, `loginSchema.ts`, `storeConfig.ts` |
+| Route files (`src/app/`) | lowercase, = URL | `login.tsx`, `_layout.tsx`, `(tabs)/` |
+| Platform / test variants | middle extension | `useColorScheme.web.ts`, `AuthReducer.test.ts` |
+
+### Environment
+
+The API environment is fixed **per build**, never switched at runtime or stored in Redux.
+`src/config/EnvConfig.ts` reads `EXPO_PUBLIC_APP_ENV` (`dev` | `qa` | `prod`) and
+`EXPO_PUBLIC_API_URL`; the app fails fast if the env is missing or invalid.
+- Local: `.env` (committed defaults) and `.env.local` (personal overrides, gitignored).
+- QA / production builds: set the variables in EAS build profiles (`eas.json`).
+- `EXPO_PUBLIC_*` values are bundled into the app — never put secrets in them.
+
+### Quality checks
+
+Run before every PR: `npm run lint` · `npm run typecheck` · `npm test`.
+Tests sit next to the file they test (`X.test.ts(x)`), using Jest (`jest-expo`) and
+React Native Testing Library (v14: `render` / `fireEvent` are async — `await` them).
 
 ---
 
@@ -131,16 +155,42 @@ auth/
 │   └── ForgotPasswordScreen.tsx
 │
 ├── components/           # Feature-specific components
-│   ├── AuthLayout.tsx
-│   └── EnvChangeModal.tsx
+│   └── AuthLayout.tsx
+│
+├── hooks/                # Feature hooks (form wiring, screen logic)
+│   └── useLoginForm.ts   # react-hook-form + zod, dispatches loginAction
+│
+├── schemas/              # zod validation schemas + inferred form types
+│   └── loginSchema.ts
+│
+├── interfaces/           # Feature state & API types
+│   └── AuthInterfaces.ts # AuthState, LoginResponse
 │
 └── store/               # Redux for this feature
-    ├── AuthReducer.ts   # State shape: { isLoggedIn, user, token }
-    ├── actions/         # Sync actions
-    ├── async-actions/   # API calls (thunks)
-    └── services/        # API endpoints
+    ├── AuthReducer.ts   # createSlice — default export reducer, named export actions
+    ├── actions/         # (optional) pure reducer helpers when reducer logic gets large
+    ├── async-actions/   # createAsyncThunk (AuthAsyncActions.ts → loginAction)
+    └── services/        # API calls: class, default-exported instance
         └── AuthServices.ts
 ```
+
+**Store conventions**
+- Slice `name` and thunk type prefix come from `StoreConstants.ts`: `AUTH_REDUCER + '/login'`.
+- Thunks are named `<verb><Thing>Action`. All async work uses `createAsyncThunk` — no redux-saga.
+- **Services never throw.** They resolve to `ServiceResult<T>`: `{ data }` or `{ error, status }`.
+  A failed call therefore lands in `fulfilled`; reducers and screens check `'error' in payload`.
+- All HTTP goes through `src/config/AxiosConfig.ts` helpers (to be created with the first real API).
+  Endpoint paths come from the API contract — never guessed.
+- Components use `useAppDispatch` / `useAppSelector` from `@/store/hooks`, never the raw hooks.
+- Strict typing: no `any` in state, thunks or services.
+
+**Adding a new slice**
+1. Add `X_REDUCER` to `src/store/constants/StoreConstants.ts`.
+2. Add `XState` to `src/domain/x/interfaces/XInterfaces.ts`.
+3. Create `src/domain/x/store/XReducer.ts`, `async-actions/XAsyncActions.ts`, `services/XServices.ts`.
+4. Register it in `rootReducer.ts` **and** `src/store/interfaces/AppState.ts`.
+5. Add it to `persistConfig.whitelist` only if it must survive a restart (keep it small — SecureStore).
+6. On logout, dispatch the reset action of every slice that holds user data.
 
 **Why Domains?**
 - ✅ **Modularity**: Each feature is self-contained
@@ -152,21 +202,17 @@ auth/
 
 ### 3. **Components Folder (Shared Components)**
 
-Reusable UI components used across **all domains**.
-
-**Examples:**
-- `Toast/`: Global notification component
-- `Loader/`: Loading indicator used everywhere
-- `TextInput/`: Reusable input field with consistent styling
-- `ScreenGuard/`: Security wrapper for sensitive screens
-- `ButtonComponent/`: Standard button with app styling
+Reusable UI components used by **two or more domains**. Generic building blocks
+(`Button`, `TextField`, `FormTextField`) live in `components/ui/`; app-level pieces
+(`ThemedText`, `ThemedView`, `BrandLogo`, `AppTabs`) sit directly in `components/`.
+All of them style themselves from `constants/Theme.ts` tokens via `useTheme()`.
 
 **Why Shared Components?**
 ```typescript
 // ✅ Instead of: Duplicating button code in auth, chat, profile
-// ✅ Do this: Import ButtonComponent and reuse
+// ✅ Do this: Import Button and reuse
 
-import ButtonComponent from '@/components/ButtonComponent';
+import { Button } from '@/components/ui/Button';
 
 // Consistent styling across the app
 // Easy to update all buttons in one place
@@ -193,19 +239,21 @@ export { default } from '@/domain/auth/screens/LoginScreen';
 
 ---
 
-### 5. **Services Folder (Business Logic & APIs)**
+### 5. **Services (inside each feature)**
 
-Core application services that don't belong to a specific domain.
+Every API call lives in its feature: `domain/<feature>/store/services/<Feature>Services.ts`.
+There is **no top-level `services/` folder**.
 
-**Examples:**
-- **NotificationService.ts**: Firebase Cloud Messaging integration
-- **ScreenTracker.ts**: Tracks current screen for notifications
-- **API Clients**: Service layer for backend communication
+- Services use the shared HTTP helpers from `src/config/AxiosConfig.ts` (planned) — the
+  Axios instance, base URL (`EnvConfig.apiUrl`), headers and token interceptors live there once.
+- Services never throw; they resolve to `ServiceResult<T>` (`src/types/ServiceInterfaces.ts`).
+- Cross-cutting capabilities that are not API calls (e.g. push notifications, analytics)
+  become their own feature: `domain/notifications/`, `domain/analytics/`.
 
-**Why Separate Services?**
-- ✅ Can be used by multiple domains
-- ✅ Easy to test and mock
-- ✅ Separation of concerns
+**Why services inside features?**
+- ✅ A feature can be read, changed or removed as one folder
+- ✅ Easy to test and mock per feature
+- ✅ One answer to "where does this API call live?"
 
 ---
 
@@ -220,7 +268,7 @@ User Interaction (Tap Button)
          ↓
    Redux Middleware (async-actions)
          ↓
-   API Call (NotificationService/AuthService)
+   Service (domain/<feature>/store/services → AxiosConfig)
          ↓
    Backend Response
          ↓
@@ -233,23 +281,24 @@ User Interaction (Tap Button)
 
 **Example: Login Flow**
 ```typescript
-// 1. User taps login button
-<ButtonComponent onPress={() => dispatch(loginUser(email, password))} />
+// 1. User taps Sign in → useLoginForm validates with loginSchema, then dispatches
+const result = await dispatch(loginAction(values)).unwrap();
+if ('error' in result) form.setError('root.serverError', { message: result.error });
 
-// 2. Async action makes API call
-export const loginUser = (email, password) => async (dispatch) => {
-  const response = await AuthServices.login(email, password);
-  dispatch(setLoginSuccess(response.token));
-}
+// 2. Thunk calls the feature's service (never throws: { data } | { error, status })
+export const loginAction = createAsyncThunk<ServiceResult<LoginResponse>, LoginFormValues>(
+  AUTH_REDUCER + '/login',
+  async (data) => AuthService.login(data)
+);
 
-// 3. Reducer updates store
-auth: { isLoggedIn: true, token: "jwt..." }
+// 3. Reducer updates the store only on success
+.addCase(loginAction.fulfilled, (state, action) => {
+  if ('error' in action.payload) return;
+  state.isLoggedIn = true; // + tokens
+});
 
-// 4. Component reads from store and navigates
-const { isLoggedIn } = useSelector(state => state.auth);
-useEffect(() => {
-  if (isLoggedIn) router.replace('/(tabs)');
-}, [isLoggedIn]);
+// 4. Navigation follows state — no manual navigate() call
+// app/_layout.tsx: <Stack.Protected guard={isLoggedIn}> swaps (auth) for (tabs)
 ```
 
 ---
@@ -267,7 +316,7 @@ useEffect(() => {
 - Redux hooks are consistent everywhere
 
 ### 3. **Type Safety**
-- Shared types and interfaces in `src/types`
+- Feature types in `domain/<feature>/interfaces`; shared types in `src/types`
 - Redux hooks are fully typed
 - Catch errors at compile time, not runtime
 
@@ -310,7 +359,7 @@ useEffect(() => {
 // 2. Use Redux for global state (auth, chat, etc.)
 // 3. Use shared components from /components
 // 4. Organize by feature, not by file type
-// 5. Keep services in /services for cross-domain use
+// 5. Keep API services inside their feature: /domain/[feature]/store/services
 ```
 
 ### ❌ DON'T
@@ -332,11 +381,15 @@ useEffect(() => {
    newfeature/
    ├── screens/
    ├── components/
+   ├── hooks/
+   ├── schemas/
+   ├── interfaces/
    └── store/
        ├── NewFeatureReducer.ts
        ├── async-actions/
        └── services/
    ```
+   Create only the folders the feature actually needs.
 3. **Add to rootReducer.ts**:
    ```typescript
    import newFeatureReducer from '../domain/newfeature/store/NewFeatureReducer';
