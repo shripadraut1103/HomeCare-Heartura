@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 
 import { useTheme } from '@/hooks/useTheme';
+import { haptics } from '@/utils/haptics';
 
 const SIZE = 40;
 
@@ -21,7 +22,10 @@ export function ThemeToggle({ style, ...pressableProps }: Omit<PressableProps, '
       accessibilityRole="button"
       accessibilityLabel={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       hitSlop={4}
-      onPress={() => Appearance.setColorScheme(isDark ? 'light' : 'dark')}
+      onPress={() => {
+        haptics.selection();
+        Appearance.setColorScheme(isDark ? 'light' : 'dark');
+      }}
       style={(state) => [
         styles.button,
         { borderColor: theme.border, backgroundColor: theme.background },

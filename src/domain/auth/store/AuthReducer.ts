@@ -21,6 +21,12 @@ const AuthReducer = createSlice({
       state.accessToken = null;
       state.refreshToken = null;
     },
+    lockSession: (state) => {
+      state.isLoggedIn = false;
+    },
+    unlockSession: (state) => {
+      state.isLoggedIn = state.refreshToken !== null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -42,4 +48,4 @@ const AuthReducer = createSlice({
 });
 
 export default AuthReducer.reducer;
-export const { resetAuthReducer } = AuthReducer.actions;
+export const { resetAuthReducer, lockSession, unlockSession } = AuthReducer.actions;

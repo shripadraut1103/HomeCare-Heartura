@@ -1,8 +1,10 @@
 import '@/global.css';
 
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { StyleSheet, useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 
@@ -19,6 +21,7 @@ function RootNavigator() {
     <Stack
       screenOptions={{
         headerShown: false,
+        animation: 'fade',
         statusBarStyle: colorScheme === 'dark' ? 'light' : 'dark',
       }}>
       <Stack.Protected guard={isLoggedIn}>
@@ -40,9 +43,19 @@ export default function RootLayout() {
         persistor={persistor}
         onBeforeLift={() => SplashScreen.hideAsync()}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <RootNavigator />
+          <GestureHandlerRootView style={styles.root}>
+            <BottomSheetModalProvider>
+              <RootNavigator />
+            </BottomSheetModalProvider>
+          </GestureHandlerRootView>
         </ThemeProvider>
       </PersistGate>
     </Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});

@@ -35,7 +35,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-image"
+      "expo-image",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID to unlock the app."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,31 +1,28 @@
-import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
+import { useColorScheme } from 'react-native';
 
-import { ThemedText } from '@/components/ThemedText';
+const LOGO_ASPECT_RATIO = 2216 / 748;
 
-/**
- * Placeholder until the Heartura logo asset is added to `assets/images/`.
- * Then replace the wordmark with:
- * `<Image source={require('@/assets/images/heartura-logo.png')} style={styles.logo} contentFit="contain" />`
- */
-export function BrandLogo() {
+const LOGO_SOURCES = {
+  light: require('@/assets/images/heartura-logo.png'),
+  dark: require('@/assets/images/heartura-logo-dark.png'),
+};
+
+type BrandLogoProps = {
+  height?: number;
+};
+
+export function BrandLogo({ height = 48 }: BrandLogoProps) {
+  const source = LOGO_SOURCES[useColorScheme() === 'dark' ? 'dark' : 'light'];
+
   return (
-    <View style={styles.logo} accessibilityRole="image" accessibilityLabel="Heartura Technologies">
-      <ThemedText type="subtitle" themeColor="primary" style={styles.wordmark}>
-        Heartura
-      </ThemedText>
-    </View>
+    <Image
+      source={source}
+      style={{ height, aspectRatio: LOGO_ASPECT_RATIO }}
+      contentFit="contain"
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel="Heartura Technologies"
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  logo: {
-    width: 148,
-    height: 48,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wordmark: {
-    fontSize: 26,
-    lineHeight: 32,
-  },
-});
