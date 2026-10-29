@@ -1,4 +1,7 @@
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
+import { useRef } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +12,10 @@ import { ThemedView } from '@/components/ThemedView';
 import { Button } from '@/components/ui/Button';
 import { FormTextField } from '@/components/ui/FormTextField';
 import { Radius, Spacing } from '@/constants/Theme';
+import {
+  ForgotPasswordSheet,
+  type ForgotPasswordSheetData,
+} from '@/domain/auth/components/ForgotPasswordSheet';
 import { useLoginForm } from '@/domain/auth/hooks/useLoginForm';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -16,7 +23,8 @@ const FORM_MAX_WIDTH = 420;
 
 export default function LoginScreen() {
   const theme = useTheme();
-  const { control, focusPassword, submit, isSubmitting, serverError } = useLoginForm();
+  const forgotPasswordSheet = useRef<BottomSheetModal<ForgotPasswordSheetData>>(null);
+  const { control, focusPassword, getEmail, submit, isSubmitting, serverError } = useLoginForm();
 
   return (
     <ThemedView type="backgroundScreen" style={styles.container}>
@@ -72,6 +80,7 @@ export default function LoginScreen() {
                   size="small"
                   title="Forgot password?"
                   style={styles.forgotPassword}
+                  onPress={() => forgotPasswordSheet.current?.present({ email: getEmail() })}
                 />
               </View>
 
@@ -91,6 +100,7 @@ export default function LoginScreen() {
                 variant="link"
                 title="Sign in with Face ID"
                 style={styles.faceId}
+                onPress={() => router.push('/unlock')}
                 icon={
                   <SymbolView
                     name={{ ios: 'lock', android: 'lock', web: 'lock' }}
@@ -103,6 +113,7 @@ export default function LoginScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+      <ForgotPasswordSheet ref={forgotPasswordSheet} />
     </ThemedView>
   );
 }

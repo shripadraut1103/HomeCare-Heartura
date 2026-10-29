@@ -16,6 +16,8 @@ describe('LoginScreen', () => {
   it('shows required-field errors when submitted empty', async () => {
     await renderLoginScreen();
 
+    await fireEvent.changeText(screen.getByLabelText('Email'), '');
+    await fireEvent.changeText(screen.getByLabelText('Password'), '');
     await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
 
     expect(await screen.findByText('Email is required')).toBeOnTheScreen();
@@ -29,6 +31,6 @@ describe('LoginScreen', () => {
     await fireEvent.changeText(screen.getByLabelText('Password'), 'secret');
     await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByText(/Sign in is not available yet/)).toBeOnTheScreen();
+    expect(await screen.findByText('Incorrect email or password.')).toBeOnTheScreen();
   });
 });

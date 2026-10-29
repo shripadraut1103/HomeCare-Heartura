@@ -1,5 +1,6 @@
 import type { LoginFormValues } from '@/domain/auth/schemas/loginSchema';
 import type { LoginResponse } from '@/domain/auth/interfaces/AuthInterfaces';
+import { MOCK_CREDENTIALS, MOCK_LOGIN_RESPONSE } from '@/domain/auth/mocks/AuthMocks';
 import type { ServiceResult } from '@/types/ServiceInterfaces';
 
 /**
@@ -12,7 +13,7 @@ import type { ServiceResult } from '@/types/ServiceInterfaces';
  * - Endpoint paths come from the API contract, never guessed.
  */
 class AuthService {
-  async login(_data: LoginFormValues): Promise<ServiceResult<LoginResponse>> {
+  async login(data: LoginFormValues): Promise<ServiceResult<LoginResponse>> {
     // Once the login contract and AxiosConfig exist:
     // try {
     //   const response = await post<LoginResponse>('<login endpoint>', data);
@@ -20,7 +21,26 @@ class AuthService {
     // } catch (error) {
     //   return { error: getErrorMessage(error), status: <HTTP status from error> };
     // }
-    return { error: 'Sign in is not available yet. Please try again later.', status: null };
+    // TEMPORARY: mock sign-in until the API exists (see AuthMocks.ts).
+    const isMockUser =
+      data.email.trim().toLowerCase() === MOCK_CREDENTIALS.email &&
+      data.password === MOCK_CREDENTIALS.password;
+    if (isMockUser) {
+      return { data: MOCK_LOGIN_RESPONSE };
+    }
+    return { error: 'Incorrect email or password.', status: 401 };
+  }
+
+  async requestPasswordReset(_email: string): Promise<ServiceResult<null>> {
+    // Once the reset contract and AxiosConfig exist:
+    // try {
+    //   await post('<reset password endpoint>', { email });
+    //   return { data: null };
+    // } catch (error) {
+    //   return { error: getErrorMessage(error), status: <HTTP status from error> };
+    // }
+    // TEMPORARY: always reports success until the API exists.
+    return { data: null };
   }
 }
 

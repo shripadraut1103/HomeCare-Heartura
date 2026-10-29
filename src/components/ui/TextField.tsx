@@ -1,14 +1,18 @@
-import { useState, type ComponentRef, type Ref } from 'react';
+import { useState, type ComponentRef, type ComponentType, type Ref } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Radius, Spacing } from '@/constants/Theme';
 import { useTheme } from '@/hooks/useTheme';
 
+type InputRef = Ref<ComponentRef<typeof TextInput>>;
+
 export type TextFieldProps = TextInputProps & {
   label: string;
   error?: string;
-  ref?: Ref<ComponentRef<typeof TextInput>>;
+  ref?: InputRef;
+  /** Swap the underlying input, e.g. `BottomSheetTextInput` inside a bottom sheet. */
+  InputComponent?: ComponentType<TextInputProps & { ref?: InputRef }>;
 };
 
 export function TextField({
@@ -18,6 +22,7 @@ export function TextField({
   onFocus,
   onBlur,
   ref,
+  InputComponent = TextInput,
   ...inputProps
 }: TextFieldProps) {
   const theme = useTheme();
@@ -30,7 +35,7 @@ export function TextField({
       <ThemedText type="smallBold" themeColor="textSecondary" style={styles.label}>
         {label}
       </ThemedText>
-      <TextInput
+      <InputComponent
         ref={ref}
         accessibilityLabel={label}
         placeholderTextColor={theme.textSecondary}
