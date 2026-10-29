@@ -13,9 +13,14 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
+  const colorScheme = useColorScheme();
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        statusBarStyle: colorScheme === 'dark' ? 'light' : 'dark',
+      }}>
       <Stack.Protected guard={isLoggedIn}>
         <Stack.Screen name="(tabs)" />
       </Stack.Protected>

@@ -4,10 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/BrandLogo';
 import { ThemedText } from '@/components/ThemedText';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { ThemedView } from '@/components/ThemedView';
 import { Button } from '@/components/ui/Button';
 import { FormTextField } from '@/components/ui/FormTextField';
-import { Spacing } from '@/constants/Theme';
+import { Radius, Spacing } from '@/constants/Theme';
 import { useLoginForm } from '@/domain/auth/hooks/useLoginForm';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -18,7 +19,7 @@ export default function LoginScreen() {
   const { control, focusPassword, submit, isSubmitting, serverError } = useLoginForm();
 
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView type="backgroundScreen" style={styles.container}>
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView
           style={styles.container}
@@ -26,14 +27,18 @@ export default function LoginScreen() {
           <ScrollView
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled">
-            <View style={styles.content}>
-              <View style={styles.header}>
+            <ThemedView style={[styles.card, { borderColor: theme.border }]}>
+              <ThemeToggle style={styles.themeToggle} />
+              <View style={styles.logo}>
                 <BrandLogo />
-                <ThemedText type="default" style={styles.title}>
-                  Provider app
+              </View>
+
+              <View style={styles.header}>
+                <ThemedText accessibilityRole="header" style={styles.title}>
+                  Sign In
                 </ThemedText>
-                <ThemedText type="small" themeColor="textSecondary" style={styles.subtitle}>
-                  Your schedule, visits and patients, on the go.
+                <ThemedText themeColor="textSecondary" style={styles.subtitle}>
+                  Use your work email to open the app.
                 </ThemedText>
               </View>
 
@@ -94,7 +99,7 @@ export default function LoginScreen() {
                   />
                 }
               />
-            </View>
+            </ThemedView>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -112,23 +117,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.five,
   },
-  content: {
+  card: {
     width: '100%',
     maxWidth: FORM_MAX_WIDTH,
     alignSelf: 'center',
+    padding: Spacing.four,
+    borderWidth: 1,
+    borderRadius: Radius.large,
+    boxShadow: '0 4px 16px rgba(16, 24, 40, 0.08)',
+  },
+  themeToggle: {
+    position: 'absolute',
+    top: Spacing.three,
+    right: Spacing.three,
+    zIndex: 1,
+  },
+  logo: {
+    alignItems: 'center',
+    marginBottom: Spacing.four,
   },
   header: {
-    alignItems: 'center',
     gap: Spacing.two,
     marginBottom: Spacing.four,
   },
   title: {
-    marginTop: Spacing.three,
-    fontSize: 18,
+    fontSize: 20,
+    lineHeight: 28,
     fontWeight: 700,
   },
   subtitle: {
-    textAlign: 'center',
+    fontSize: 15,
+    lineHeight: 22,
     fontWeight: 400,
   },
   form: {
