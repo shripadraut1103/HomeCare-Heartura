@@ -2,12 +2,12 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Icon } from '@/components/ui/Icon';
+import { IconCircle } from '@/components/ui/IconCircle';
 import { Pill } from '@/components/ui/Pill';
 import { Radius, Shadows, Spacing } from '@/constants/Theme';
 import type { NewCase } from '@/domain/home/interfaces/HomeInterfaces';
 import { useTheme } from '@/hooks/useTheme';
 
-const AVATAR_SIZE = 40;
 const NOTE_BAR_WIDTH = 3;
 
 type NewCaseCardProps = {
@@ -31,9 +31,11 @@ export function NewCaseCard({ newCase, onPress }: NewCaseCardProps) {
         { backgroundColor: theme.background },
         pressed && styles.pressed,
       ]}>
-      <View style={[styles.avatar, { backgroundColor: theme.toneRoseBg }]}>
-        <Icon name={{ ios: 'person.2', android: 'group' }} size={18} color={theme.toneRedFg} />
-      </View>
+      <IconCircle
+        icon={{ ios: 'person.2', android: 'group' }}
+        color="toneRedFg"
+        backgroundColor="toneRoseBg"
+      />
 
       <View style={styles.body}>
         <ThemedText numberOfLines={1} style={styles.title}>
@@ -78,13 +80,6 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.85,
-  },
-  avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   body: {
     flex: 1,

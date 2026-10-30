@@ -29,3 +29,17 @@ export function getGreeting(date: Date) {
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
 }
+
+const shortDateFormatter = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' });
+const weekdayFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'long' });
+
+export const formatTime = (date: Date) => timeFormatter.format(date);
+
+const startOfDay = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+
+export function formatRelativeDay(date: Date, now = new Date()) {
+  const days = Math.round((startOfDay(date) - startOfDay(now)) / 86_400_000);
+  const day = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : weekdayFormatter.format(date);
+  return `${day}, ${shortDateFormatter.format(date)}`;
+}

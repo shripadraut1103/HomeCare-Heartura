@@ -2,38 +2,29 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'rea
 
 import { ThemedText } from '@/components/ThemedText';
 import { Pill } from '@/components/ui/Pill';
-import { Radius, Shadows, Spacing, type ThemeColor } from '@/constants/Theme';
-import type { ScheduledVisit, VisitStatus } from '@/domain/home/interfaces/HomeInterfaces';
+import { Radius, Shadows, Spacing } from '@/constants/Theme';
+import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
+import { VISIT_STATUS } from '@/domain/visits/visitStatus';
 import { useTheme } from '@/hooks/useTheme';
 import { formatTimeParts } from '@/utils/dateFormat';
 
 const TIME_COLUMN_WIDTH = 74;
 
-const STATUS_STYLE: Record<
-  VisitStatus,
-  { label: string; color: ThemeColor; background: ThemeColor }
-> = {
-  scheduled: { label: 'Scheduled', color: 'primary', background: 'primaryMuted' },
-  inProgress: { label: 'In progress', color: 'toneAmberFg', background: 'toneAmberBg' },
-  completed: { label: 'Completed', color: 'success', background: 'successMuted' },
-  missed: { label: 'Missed', color: 'toneRedFg', background: 'toneRedBg' },
-};
-
 type VisitCardProps = {
-  visit: ScheduledVisit;
-  onPress?: (visit: ScheduledVisit) => void;
+  visit: Visit;
+  onPress?: (visit: Visit) => void;
   style?: StyleProp<ViewStyle>;
 };
 
 export function VisitCard({ visit, onPress, style }: VisitCardProps) {
   const theme = useTheme();
   const { time, period } = formatTimeParts(new Date(visit.startsAt));
-  const status = STATUS_STYLE[visit.status];
+  const status = VISIT_STATUS[visit.status];
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${time} ${period}, ${visit.durationMinutes} minutes, ${visit.patientName}, ${visit.details}, ${status.label}`}
+      accessibilityLabel={`${time} ${period}, ${visit.durationMinutes} minutes, ${visit.patientName}, ${visit.summary}, ${status.label}`}
       onPress={onPress ? () => onPress(visit) : undefined}
       style={({ pressed }) => [
         styles.card,
@@ -63,7 +54,7 @@ export function VisitCard({ visit, onPress, style }: VisitCardProps) {
           </ThemedText>
         </ThemedText>
         <ThemedText numberOfLines={1} themeColor="textSecondary" style={styles.meta}>
-          {visit.details}
+          {visit.summary}
         </ThemedText>
       </View>
 
@@ -72,6 +63,7 @@ export function VisitCard({ visit, onPress, style }: VisitCardProps) {
         color={status.color}
         backgroundColor={status.background}
         dot
+        dotColor={status.dot}
         style={styles.status}
       />
     </Pressable>

@@ -11,6 +11,7 @@ type PillProps = {
   color?: ThemeColor;
   backgroundColor?: ThemeColor;
   dot?: boolean;
+  dotColor?: ThemeColor;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -19,6 +20,7 @@ export function Pill({
   color = 'textSecondary',
   backgroundColor = 'backgroundElement',
   dot = false,
+  dotColor,
   style,
 }: PillProps) {
   const theme = useTheme();
@@ -30,7 +32,7 @@ export function Pill({
         { backgroundColor: theme[backgroundColor], borderColor: theme.border },
         style,
       ]}>
-      {dot ? <View style={[styles.dot, { backgroundColor: theme[color] }]} /> : null}
+      {dot ? <View style={[styles.dot, { backgroundColor: theme[dotColor ?? color] }]} /> : null}
       <ThemedText themeColor={color} numberOfLines={1} style={styles.label}>
         {label}
       </ThemedText>

@@ -1,8 +1,8 @@
 import { StyleSheet, View } from 'react-native';
 
 import { Spacing } from '@/constants/Theme';
-import { VisitCard } from '@/domain/home/components/VisitCard';
-import type { ScheduledVisit } from '@/domain/home/interfaces/HomeInterfaces';
+import { VisitCard } from '@/domain/visits/components/VisitCard';
+import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
 import { useTheme } from '@/hooks/useTheme';
 
 const RAIL_WIDTH = 24;
@@ -10,10 +10,10 @@ const DOT_SIZE = 16;
 const LINE_WIDTH = 2;
 
 type VisitTimelineItemProps = {
-  visit: ScheduledVisit;
+  visit: Visit;
   isFirst: boolean;
   isLast: boolean;
-  onPress?: (visit: ScheduledVisit) => void;
+  onPress?: (visit: Visit) => void;
 };
 
 export function VisitTimelineItem({ visit, isFirst, isLast, onPress }: VisitTimelineItemProps) {

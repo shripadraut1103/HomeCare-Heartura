@@ -10,18 +10,6 @@ export interface HomeStat {
   icon: IconName;
 }
 
-export type VisitStatus = 'scheduled' | 'inProgress' | 'completed' | 'missed';
-
-export interface ScheduledVisit {
-  id: string;
-  startsAt: string;
-  durationMinutes: number;
-  patientName: string;
-  patientTag: string;
-  details: string;
-  status: VisitStatus;
-}
-
 export interface NewCase {
   id: string;
   patientName: string;
@@ -32,9 +20,7 @@ export interface NewCase {
 
 export interface HomeSummary {
   providerName: string;
-  unreadNotifications: number;
   stats: HomeStat[];
   unscheduledPatients: number;
-  todaysVisits: ScheduledVisit[];
   newCases: NewCase[];
 }

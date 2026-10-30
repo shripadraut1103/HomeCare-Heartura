@@ -1,4 +1,6 @@
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
+import { useRef } from 'react';
 import { FlatList, StyleSheet, View, type ListRenderItem } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -13,21 +15,33 @@ import { QuickActions } from '@/domain/home/components/QuickActions';
 import { UnscheduledPatientsBanner } from '@/domain/home/components/UnscheduledPatientsBanner';
 import { VisitTimelineItem } from '@/domain/home/components/VisitTimelineItem';
 import { useHomeSummary } from '@/domain/home/hooks/useHomeSummary';
-import type { ScheduledVisit } from '@/domain/home/interfaces/HomeInterfaces';
+import { NotificationsSheet } from '@/domain/notifications/components/NotificationsSheet';
+import { useNotifications } from '@/domain/notifications/hooks/useNotifications';
+import {
+  VisitDetailsSheet,
+  type VisitDetailsSheetData,
+} from '@/domain/visits/components/VisitDetailsSheet';
+import { useTodaysVisits } from '@/domain/visits/hooks/useVisits';
+import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
 import { getGreeting } from '@/utils/dateFormat';
 import { getFirstName } from '@/utils/nameFormat';
 
 const CONTENT_MAX_WIDTH = 720;
 
-const keyExtractor = (visit: ScheduledVisit) => visit.id;
+const keyExtractor = (visit: Visit) => visit.id;
 
 export default function HomeScreen() {
   const summary = useHomeSummary();
   const tabBarSpace = useTabBarSpace();
+  const notifications = useNotifications();
+  const notificationsSheet = useRef<BottomSheetModal<undefined>>(null);
+  const visitDetailsSheet = useRef<BottomSheetModal<VisitDetailsSheetData>>(null);
+  const todaysVisits = useTodaysVisits();
   const now = new Date();
-  const visitCount = summary.todaysVisits.length;
+  const visitCount = todaysVisits.length;
 
   const goToSchedule = () => router.navigate('/schedule');
+  const openVisit = (visitId: string) => visitDetailsSheet.current?.present({ visitId });
 
   const listHeader = (
     <View style={styles.listHeader}>
@@ -62,18 +76,27 @@ export default function HomeScreen() {
       </View>
     ) : undefined;
 
-  const renderVisit: ListRenderItem<ScheduledVisit> = ({ item, index }) => (
-    <VisitTimelineItem visit={item} isFirst={index === 0} isLast={index === visitCount - 1} />
+  const renderVisit: ListRenderItem<Visit> = ({ item, index }) => (
+    <VisitTimelineItem
+      visit={item}
+      isFirst={index === 0}
+      isLast={index === visitCount - 1}
+      onPress={(visit) => openVisit(visit.id)}
+    />
   );
 
   return (
     <ThemedView type="backgroundScreen" style={styles.container}>
       <SafeAreaView edges={['top']} style={styles.container}>
         <View style={styles.header}>
-          <HomeHeader date={now} unreadNotifications={summary.unreadNotifications} />
+          <HomeHeader
+            date={now}
+            unreadNotifications={notifications.length}
+            onNotificationsPress={() => notificationsSheet.current?.present()}
+          />
         </View>
         <FlatList
-          data={summary.todaysVisits}
+          data={todaysVisits}
           keyExtractor={keyExtractor}
           renderItem={renderVisit}
           ListHeaderComponent={listHeader}
@@ -83,6 +106,8 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
         />
       </SafeAreaView>
+      <NotificationsSheet ref={notificationsSheet} onOpenVisit={openVisit} />
+      <VisitDetailsSheet ref={visitDetailsSheet} />
     </ThemedView>
   );
 }
