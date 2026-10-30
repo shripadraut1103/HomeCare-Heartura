@@ -10,7 +10,7 @@ import {
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/ThemedText';
-import { Radius, Spacing } from '@/constants/Theme';
+import { Radius, Spacing, type ThemeColor } from '@/constants/Theme';
 import { useTheme } from '@/hooks/useTheme';
 import { haptics } from '@/utils/haptics';
 
@@ -23,11 +23,12 @@ const DISABLED_OPACITY = 0.5;
 
 export type ButtonProps = Omit<PressableProps, 'children' | 'style'> & {
   title: string;
-  /** `primary` is filled, `secondary` is outlined, `link` is a borderless text button. */
   variant?: 'primary' | 'secondary' | 'link';
-  size?: 'small' | 'medium';
+  size?: 'small' | 'medium' | 'large';
   loading?: boolean;
   icon?: ReactNode;
+  trailingIcon?: ReactNode;
+  color?: ThemeColor;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -38,6 +39,8 @@ export function Button({
   loading = false,
   disabled,
   icon,
+  trailingIcon,
+  color,
   style,
   onPress,
   onPressIn,
@@ -86,6 +89,7 @@ export function Button({
           styles.secondary,
           { borderColor: theme.border, backgroundColor: theme.background },
         ],
+        size === 'large' && !isLink && styles.large,
         style,
         pressStyle,
       ]}
@@ -97,10 +101,11 @@ export function Button({
           {icon}
           <ThemedText
             type={size === 'small' ? 'smallBold' : 'default'}
-            themeColor={isPrimary ? 'onPrimary' : isSecondary ? 'text' : 'primary'}
-            style={size === 'medium' && styles.mediumLabel}>
+            themeColor={color ?? (isPrimary ? 'onPrimary' : isSecondary ? 'text' : 'primary')}
+            style={size === 'medium' ? styles.mediumLabel : size === 'large' && styles.largeLabel}>
             {title}
           </ThemedText>
+          {trailingIcon}
         </>
       )}
     </AnimatedPressable>
@@ -122,7 +127,16 @@ const styles = StyleSheet.create({
   secondary: {
     borderWidth: 1,
   },
+  large: {
+    minHeight: 52,
+    borderRadius: Radius.medium,
+  },
   mediumLabel: {
+    fontWeight: 600,
+  },
+  largeLabel: {
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: 600,
   },
 });
