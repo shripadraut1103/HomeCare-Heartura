@@ -2,16 +2,15 @@ import '@/global.css';
 
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
+import { useState } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 
+import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { useAppSelector } from '@/store/hooks';
 import { persistor, store } from '@/store/storeConfig';
-
-SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
@@ -36,17 +35,17 @@ function RootNavigator() {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [splashVisible, setSplashVisible] = useState(true);
+
   return (
     <Provider store={store}>
-      <PersistGate
-        loading={null}
-        persistor={persistor}
-        onBeforeLift={() => SplashScreen.hideAsync()}>
+      <PersistGate loading={null} persistor={persistor}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <GestureHandlerRootView style={styles.root}>
             <BottomSheetModalProvider>
               <RootNavigator />
             </BottomSheetModalProvider>
+            {splashVisible ? <AnimatedSplash onFinish={() => setSplashVisible(false)} /> : null}
           </GestureHandlerRootView>
         </ThemeProvider>
       </PersistGate>
