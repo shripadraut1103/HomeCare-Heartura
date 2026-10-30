@@ -11,7 +11,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { ThemedView } from '@/components/ThemedView';
 import { Button } from '@/components/ui/Button';
 import { FormTextField } from '@/components/ui/FormTextField';
-import { Radius, Spacing } from '@/constants/Theme';
+import { Radius, Shadows, Spacing } from '@/constants/Theme';
 import {
   ForgotPasswordSheet,
   type ForgotPasswordSheetData,
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     borderWidth: 1,
     borderRadius: Radius.large,
-    boxShadow: '0 4px 16px rgba(16, 24, 40, 0.08)',
+    ...Shadows.raised,
   },
   themeToggle: {
     position: 'absolute',

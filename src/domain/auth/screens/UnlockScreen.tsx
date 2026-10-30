@@ -13,16 +13,14 @@ import {
   useBiometricUnlock,
   type BiometricUnlockStatus,
 } from '@/domain/auth/hooks/useBiometricUnlock';
+import { MOCK_USER } from '@/domain/auth/mocks/AuthMocks';
 import { useTheme } from '@/hooks/useTheme';
+import { getFirstName, getInitials } from '@/utils/nameFormat';
 
 const CONTENT_MAX_WIDTH = 420;
 const AVATAR_SIZE = 64;
 
-/**
- * PLACEHOLDER: replace with the saved user's profile once the login API returns it
- * (see `LoginResponse` in AuthInterfaces).
- */
-const SAVED_USER = { name: 'Helena Ruiz, DPT', organization: 'HomeCare Therapeutics' };
+const SAVED_USER = MOCK_USER;
 
 const STATUS_COPY: Record<
   Exclude<BiometricUnlockStatus, 'success'>,
@@ -49,17 +47,6 @@ const STATUS_COPY: Record<
     message: 'Biometric unlock is available after you sign in once with your password.',
   },
 };
-
-const getFirstName = (name: string) => name.split(/[ ,]/)[0];
-
-const getInitials = (name: string) =>
-  name
-    .split(',')[0]
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part[0].toUpperCase())
-    .slice(0, 2)
-    .join('');
 
 export default function UnlockScreen() {
   const theme = useTheme();
