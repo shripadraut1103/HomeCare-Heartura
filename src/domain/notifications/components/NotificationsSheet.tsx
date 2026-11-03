@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppBottomSheet } from '@/components/sheet/AppBottomSheet';
 import { SheetHeader } from '@/components/sheet/SheetHeader';
 import { ThemedText } from '@/components/ThemedText';
-import { Icon } from '@/components/ui/Icon';
+import { InfoNote } from '@/components/ui/InfoNote';
 import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl';
 import { Spacing } from '@/constants/Theme';
 import { NotificationCard } from '@/domain/notifications/components/NotificationCard';
@@ -110,18 +110,7 @@ function NotificationsContent({ onOpenVisit }: Pick<NotificationsSheetProps, 'on
         </ThemedText>
       }
       ListFooterComponent={
-        footnote ? (
-          <View style={styles.footnote}>
-            <Icon
-              name={{ ios: 'info.circle', android: 'info' }}
-              size={16}
-              color={theme.textSecondary}
-            />
-            <ThemedText themeColor="textSecondary" style={styles.footnoteText}>
-              {footnote}
-            </ThemedText>
-          </View>
-        ) : undefined
+        footnote ? <InfoNote text={footnote} style={styles.footnote} /> : undefined
       }
     />
   );
@@ -149,15 +138,6 @@ const styles = StyleSheet.create({
   },
   footnote: {
     paddingHorizontal: Spacing.three,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.two,
     paddingTop: Spacing.three,
-  },
-  footnoteText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 400,
   },
 });

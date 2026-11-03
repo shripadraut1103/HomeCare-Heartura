@@ -32,7 +32,7 @@ export default function AppTabs() {
             borderColor: theme.border,
           },
         ]}>
-        <TabTrigger name="index" href="/" asChild>
+        <TabTrigger name="index" href="/(tabs)/(home)" asChild>
           <TabBarButton label="Home" icon={{ ios: 'square.grid.2x2', android: 'grid_view' }} />
         </TabTrigger>
         <TabTrigger name="schedule" href="/schedule" asChild>

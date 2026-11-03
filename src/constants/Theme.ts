@@ -7,6 +7,7 @@ export const Colors = {
     backgroundScreen: '#EEF4F2',
     backgroundElement: '#F0F0F3',
     backgroundSelected: '#E0E1E6',
+    surfaceMuted: '#F2F5FA',
     textSecondary: '#60646C',
     primary: '#1A5AA6',
     primaryMuted: '#E3ECF8',
@@ -26,6 +27,9 @@ export const Colors = {
     toneRedFg: '#B3342B',
     toneRoseBg: '#F7E1E3',
     toneRoseFg: '#B3342B',
+    tonePurpleBg: '#EEE9FB',
+    toneTealBg: '#E6F2F1',
+    tonePurpleFg: '#5B3FC4',
   },
   dark: {
     text: '#ffffff',
@@ -33,6 +37,7 @@ export const Colors = {
     backgroundScreen: '#111214',
     backgroundElement: '#212225',
     backgroundSelected: '#2E3135',
+    surfaceMuted: '#1A1C20',
     textSecondary: '#B0B4BA',
     primary: '#6AA6F0',
     primaryMuted: '#1B2A40',
@@ -52,6 +57,9 @@ export const Colors = {
     toneRedFg: '#F08A80',
     toneRoseBg: '#3A1C22',
     toneRoseFg: '#F08A80',
+    tonePurpleBg: '#251D3D',
+    toneTealBg: '#12302F',
+    tonePurpleFg: '#B3A1F5',
   },
 } as const;
 

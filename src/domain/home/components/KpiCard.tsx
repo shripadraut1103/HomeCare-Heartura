@@ -1,4 +1,4 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Icon } from '@/components/ui/Icon';
@@ -15,15 +15,26 @@ const TONE_COLORS: Record<StatTone, { background: ThemeColor; foreground: ThemeC
   rose: { background: 'toneRoseBg', foreground: 'toneRoseFg' },
 };
 
-export function KpiCard({ stat }: { stat: HomeStat }) {
+type KpiCardProps = {
+  stat: HomeStat;
+  onPress?: (stat: HomeStat) => void;
+};
+
+export function KpiCard({ stat, onPress }: KpiCardProps) {
   const theme = useTheme();
   const tone = TONE_COLORS[stat.tone];
 
   return (
-    <View
-      accessible
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={`${stat.count} ${stat.label}`}
-      style={[styles.tile, { backgroundColor: theme[tone.background] }]}>
+      disabled={!onPress}
+      onPress={onPress ? () => onPress(stat) : undefined}
+      style={({ pressed }) => [
+        styles.tile,
+        { backgroundColor: theme[tone.background] },
+        pressed && styles.pressed,
+      ]}>
       <View style={[styles.iconBox, { backgroundColor: theme.background }]}>
         <Icon name={stat.icon} size={18} color={theme[tone.foreground]} />
       </View>
@@ -33,7 +44,7 @@ export function KpiCard({ stat }: { stat: HomeStat }) {
       <ThemedText themeColor="textSecondary" style={styles.label}>
         {stat.label}
       </ThemedText>
-    </View>
+    </Pressable>
   );
 }
 
@@ -43,6 +54,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.three - Spacing.one,
     paddingHorizontal: Spacing.two + Spacing.half,
     borderRadius: Radius.medium,
+  },
+  pressed: {
+    opacity: 0.85,
   },
   iconBox: {
     width: ICON_BOX_SIZE,
