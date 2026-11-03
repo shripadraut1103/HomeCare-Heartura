@@ -3,8 +3,7 @@ import {
   useBottomSheetModal,
   type BottomSheetModal,
 } from '@gorhom/bottom-sheet';
-import * as Clipboard from 'expo-clipboard';
-import { useEffect, useRef, useState, type Ref } from 'react';
+import { useRef, type Ref } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,13 +22,12 @@ import {
 import { useVisit } from '@/domain/visits/hooks/useVisits';
 import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
 import { VISIT_STATUS } from '@/domain/visits/visitStatus';
+import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 import { useTheme } from '@/hooks/useTheme';
 import { formatRelativeDay, formatTime } from '@/utils/dateFormat';
-import { haptics } from '@/utils/haptics';
 import { callPhone, openDirections } from '@/utils/linking';
 
 const SNAP_POINTS = ['92%'];
-const COPIED_FEEDBACK_MS = 1500;
 
 export type VisitDetailsSheetData = { visitId: string };
 
@@ -192,19 +190,7 @@ function WhenValue({ visit }: { visit: Visit }) {
 
 function PhoneValue({ phone }: { phone: string }) {
   const theme = useTheme();
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
-    return () => clearTimeout(timer);
-  }, [copied]);
-
-  const copy = async () => {
-    await Clipboard.setStringAsync(phone);
-    haptics.success();
-    setCopied(true);
-  };
+  const { copied, copy } = useCopyToClipboard();
 
   return (
     <View style={styles.phone}>
@@ -220,7 +206,7 @@ function PhoneValue({ phone }: { phone: string }) {
         accessibilityRole="button"
         accessibilityLabel={copied ? 'Copied' : 'Copy phone number'}
         hitSlop={8}
-        onPress={copy}>
+        onPress={() => copy(phone)}>
         <Icon
           name={
             copied

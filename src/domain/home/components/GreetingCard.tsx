@@ -10,9 +10,10 @@ type GreetingCardProps = {
   greeting: string;
   firstName: string;
   stats: HomeStat[];
+  onStatPress?: (stat: HomeStat) => void;
 };
 
-export function GreetingCard({ greeting, firstName, stats }: GreetingCardProps) {
+export function GreetingCard({ greeting, firstName, stats, onStatPress }: GreetingCardProps) {
   const theme = useTheme();
   const gradient = Gradients[useColorScheme() === 'dark' ? 'dark' : 'light'].greeting;
 
@@ -27,7 +28,7 @@ export function GreetingCard({ greeting, firstName, stats }: GreetingCardProps) 
       </ThemedText>
       <View style={styles.stats}>
         {stats.map((stat) => (
-          <KpiCard key={stat.id} stat={stat} />
+          <KpiCard key={stat.id} stat={stat} onPress={onStatPress} />
         ))}
       </View>
     </View>

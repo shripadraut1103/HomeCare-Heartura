@@ -43,3 +43,35 @@ export function formatRelativeDay(date: Date, now = new Date()) {
   const day = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : weekdayFormatter.format(date);
   return `${day}, ${shortDateFormatter.format(date)}`;
 }
+
+const numericDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: '2-digit',
+  day: '2-digit',
+  year: 'numeric',
+});
+
+export const formatNumericDate = (date: Date) => numericDateFormatter.format(date);
+
+export function parseNumericDate(value: string) {
+  const [month, day, year] = value.split('/').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+export function formatAge(dateOfBirth: Date, now = new Date()) {
+  let months =
+    (now.getFullYear() - dateOfBirth.getFullYear()) * 12 +
+    (now.getMonth() - dateOfBirth.getMonth());
+  if (now.getDate() < dateOfBirth.getDate()) months -= 1;
+  const years = Math.floor(months / 12);
+  const remainder = months % 12;
+  return remainder === 0 ? `${years} yrs` : `${years} yrs ${remainder} mos`;
+}
+
+export function formatTimeRange(start: Date, end: Date) {
+  const from = formatTimeParts(start);
+  const to = formatTimeParts(end);
+  const period = (value: string) => value.toUpperCase();
+  return from.period === to.period
+    ? `${from.time}–${to.time} ${period(to.period)}`
+    : `${from.time} ${period(from.period)}–${to.time} ${period(to.period)}`;
+}
