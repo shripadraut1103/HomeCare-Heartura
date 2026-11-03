@@ -4,6 +4,10 @@ export function callPhone(phone: string) {
   return Linking.openURL(`tel:${phone.replace(/[^\d+]/g, '')}`).catch(() => {});
 }
 
+export function sendEmail(email: string) {
+  return Linking.openURL(`mailto:${email}`).catch(() => {});
+}
+
 export async function openDirections(address: string) {
   const query = encodeURIComponent(address);
   const native =

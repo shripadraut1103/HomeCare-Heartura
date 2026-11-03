@@ -18,11 +18,13 @@ import {
 } from '@/domain/auth/components/ForgotPasswordSheet';
 import { useLoginForm } from '@/domain/auth/hooks/useLoginForm';
 import { useTheme } from '@/hooks/useTheme';
+import { useAppSelector } from '@/store/hooks';
 
 const FORM_MAX_WIDTH = 420;
 
 export default function LoginScreen() {
   const theme = useTheme();
+  const biometricUnlock = useAppSelector((state) => state.preferences.biometricUnlock);
   const forgotPasswordSheet = useRef<BottomSheetModal<ForgotPasswordSheetData>>(null);
   const { control, focusPassword, getEmail, submit, isSubmitting, serverError } = useLoginForm();
 
@@ -96,19 +98,21 @@ export default function LoginScreen() {
 
               <Button title="Sign in" loading={isSubmitting} onPress={submit} />
 
-              <Button
-                variant="link"
-                title="Sign in with Face ID"
-                style={styles.faceId}
-                onPress={() => router.push('/unlock')}
-                icon={
-                  <SymbolView
-                    name={{ ios: 'lock', android: 'lock', web: 'lock' }}
-                    size={16}
-                    tintColor={theme.primary}
-                  />
-                }
-              />
+              {biometricUnlock ? (
+                <Button
+                  variant="link"
+                  title="Sign in with Face ID"
+                  style={styles.faceId}
+                  onPress={() => router.push('/unlock')}
+                  icon={
+                    <SymbolView
+                      name={{ ios: 'lock', android: 'lock', web: 'lock' }}
+                      size={16}
+                      tintColor={theme.primary}
+                    />
+                  }
+                />
+              ) : null}
             </ThemedView>
           </ScrollView>
         </KeyboardAvoidingView>

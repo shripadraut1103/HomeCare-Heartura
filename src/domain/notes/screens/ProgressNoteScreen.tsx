@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -17,16 +17,24 @@ import { useNoteForm } from '@/domain/notes/hooks/useNoteForm';
 import { useNoteTemplates, useProgressNoteDue } from '@/domain/notes/hooks/useNotes';
 import { getProgressNoteStatus } from '@/domain/notes/noteStyles';
 import { useTheme } from '@/hooks/useTheme';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { setToastMessage } from '@/store/common-reducer/ToastReducer';
+import { useAppDispatch } from '@/store/hooks';
 import { formatRelativeDay, formatTime } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
 
 export default function ProgressNoteScreen() {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
   const { id } = useLocalSearchParams<{ id: string }>();
   const note = useProgressNoteDue(id);
   const { templates, sections } = useNoteTemplates('progress');
   const [templateId, setTemplateId] = useState(() => getDefaultTemplateId(templates));
   const form = useNoteForm(sections, note?.prefill);
+  const { leave } = useUnsavedChangesGuard(
+    form.isDirty,
+    'What you’ve entered in this progress note will be lost.'
+  );
 
   if (!note) return <NoteNotFound title="Progress note" />;
 
@@ -34,7 +42,8 @@ export default function ProgressNoteScreen() {
 
   const saveDraft = () => {
     haptics.success();
-    router.back();
+    dispatch(setToastMessage({ message: 'Progress note saved as draft' }));
+    leave();
   };
 
   const completeAndSign = () => {

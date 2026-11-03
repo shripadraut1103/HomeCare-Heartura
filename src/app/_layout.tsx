@@ -2,6 +2,7 @@ import '@/global.css';
 
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { StyleSheet, useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -9,6 +10,8 @@ import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 
 import { AnimatedSplash } from '@/components/AnimatedSplash';
+import { ToastHost } from '@/components/ToastHost';
+import { useApplyAppearance } from '@/domain/profile/hooks/useApplyAppearance';
 import { useAppSelector } from '@/store/hooks';
 import { persistor, store } from '@/store/storeConfig';
 
@@ -16,19 +19,20 @@ const PUSHED_SCREEN = { animation: 'ios_from_right', fullScreenGestureEnabled: t
 
 function RootNavigator() {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
-  const colorScheme = useColorScheme();
+  useApplyAppearance();
 
   return (
     <Stack
       screenOptions={{
         headerShown: false,
         animation: 'fade',
-        statusBarStyle: colorScheme === 'dark' ? 'light' : 'dark',
       }}>
       <Stack.Protected guard={isLoggedIn}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="progress-note/[id]" options={PUSHED_SCREEN} />
         <Stack.Screen name="evaluation/[id]" options={PUSHED_SCREEN} />
+        <Stack.Screen name="edit-profile" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="edit-availability" options={{ presentation: 'fullScreenModal' }} />
       </Stack.Protected>
       <Stack.Protected guard={!isLoggedIn}>
         <Stack.Screen name="(auth)" />
@@ -49,6 +53,8 @@ export default function RootLayout() {
             <BottomSheetModalProvider>
               <RootNavigator />
             </BottomSheetModalProvider>
+            <StatusBar style="auto" />
+            <ToastHost />
             {splashVisible ? <AnimatedSplash onFinish={() => setSplashVisible(false)} /> : null}
           </GestureHandlerRootView>
         </ThemeProvider>

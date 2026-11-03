@@ -46,6 +46,7 @@ export default function HomeScreen() {
   const openStat = (stat: HomeStat) => {
     if (stat.id === 'notes') router.push({ pathname: '/notes', params: { tab: 'pending' } });
     if (stat.id === 'progress') router.push({ pathname: '/notes', params: { tab: 'progress' } });
+    if (stat.id === 'requests') router.push('/patient-requests');
   };
 
   const listHeader = (

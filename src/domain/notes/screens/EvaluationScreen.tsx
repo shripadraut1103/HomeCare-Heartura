@@ -1,7 +1,7 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { FloatingActionButton } from '@/components/ui/FloatingActionButton';
@@ -25,6 +25,10 @@ import { useNoteTemplates, usePendingNote } from '@/domain/notes/hooks/useNotes'
 import type { PreviousNote } from '@/domain/notes/interfaces/NoteInterfaces';
 import { IspSheet, type IspSheetData } from '@/domain/patients/components/IspSheet';
 import { useTheme } from '@/hooks/useTheme';
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
+import { setToastMessage } from '@/store/common-reducer/ToastReducer';
+import { useAppDispatch } from '@/store/hooks';
+import { confirm } from '@/utils/confirm';
 import { formatRelativeDay, formatTime } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
 
@@ -32,11 +36,16 @@ const INTAKE_STEPS = ['Evaluation', 'Care plan', 'Daily note'] as const;
 
 export default function EvaluationScreen() {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
   const { id } = useLocalSearchParams<{ id: string }>();
   const note = usePendingNote(id);
   const { templates, sections } = useNoteTemplates('evaluation');
   const [templateId, setTemplateId] = useState(() => getDefaultTemplateId(templates));
   const form = useNoteForm(sections, note?.draft?.prefill);
+  const { leave } = useUnsavedChangesGuard(
+    form.isDirty,
+    'What you’ve entered in this evaluation will be lost.'
+  );
   const ispSheet = useRef<BottomSheetModal<IspSheetData>>(null);
   const copySheet = useRef<BottomSheetModal<CopyFromPreviousSheetData>>(null);
 
@@ -47,7 +56,8 @@ export default function EvaluationScreen() {
 
   const saveAndContinue = () => {
     haptics.success();
-    router.back();
+    dispatch(setToastMessage({ message: 'Evaluation saved as draft' }));
+    leave();
   };
 
   const copyFrom = (previous: PreviousNote) => {
@@ -60,14 +70,14 @@ export default function EvaluationScreen() {
       apply();
       return;
     }
-    Alert.alert(
-      'Replace your answers?',
-      `${overwrites} ${overwrites === 1 ? 'answer you’ve entered' : 'answers you’ve entered'} will be replaced with the ones from the ${previous.title.toLowerCase()} of ${previous.date}.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Replace', style: 'destructive', onPress: apply },
-      ]
-    );
+    void confirm({
+      title: 'Replace your answers?',
+      message: `${overwrites} ${overwrites === 1 ? 'answer you’ve entered' : 'answers you’ve entered'} will be replaced with the ones from the ${previous.title.toLowerCase()} of ${previous.date}.`,
+      confirmLabel: 'Replace',
+      destructive: true,
+    }).then((replace) => {
+      if (replace) apply();
+    });
   };
 
   const completeAndSign = () => {

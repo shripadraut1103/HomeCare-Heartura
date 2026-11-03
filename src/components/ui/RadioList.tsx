@@ -17,7 +17,7 @@ export type RadioOption<T extends string> = {
 
 type RadioListProps<T extends string> = {
   options: readonly RadioOption<T>[];
-  value: T;
+  value: T | null;
   onChange: (value: T) => void;
 };
 

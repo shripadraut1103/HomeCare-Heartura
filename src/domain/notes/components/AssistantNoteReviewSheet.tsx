@@ -18,10 +18,11 @@ import { InfoNote } from '@/components/ui/InfoNote';
 import { Pill } from '@/components/ui/Pill';
 import { TextField, type TextFieldProps } from '@/components/ui/TextField';
 import { Radius, Spacing } from '@/constants/Theme';
-import { usePendingNote } from '@/domain/notes/hooks/useNotes';
+import { usePendingNote, usePendingNotes } from '@/domain/notes/hooks/useNotes';
 import type { AssistantNoteReview } from '@/domain/notes/interfaces/NoteInterfaces';
-import { removePendingNote } from '@/domain/notes/store/NotesReducer';
+import { removePendingNote, restorePendingNote } from '@/domain/notes/store/NotesReducer';
 import { useTheme } from '@/hooks/useTheme';
+import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
 import { formatNumericDate, formatTime, formatTimeRange } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
@@ -57,6 +58,7 @@ function ReviewContent({ noteId }: AssistantNoteReviewSheetData) {
   const { dismiss } = useBottomSheetModal();
   const commentRef = useRef<ComponentRef<typeof TextInput>>(null);
   const current = usePendingNote(noteId);
+  const pendingNotes = usePendingNotes();
   const [note] = useState(current);
   const [comment, setComment] = useState('');
   const [commentError, setCommentError] = useState<string>();
@@ -66,13 +68,20 @@ function ReviewContent({ noteId }: AssistantNoteReviewSheetData) {
 
   const author = getFirstName(review.author);
 
-  const finish = () => {
+  const finish = (message: string) => {
+    const index = pendingNotes.findIndex((item) => item.id === noteId);
     dispatch(removePendingNote({ noteId }));
+    dispatch(
+      setToastMessage({
+        message,
+        action: { label: 'Undo', onPress: restorePendingNote({ note, index }) },
+      })
+    );
     haptics.success();
     dismiss();
   };
 
-  const approve = finish;
+  const approve = () => finish(`Signed ${author}’s note for ${note.patientName}`);
   const sendBack = () => {
     if (comment.trim() === '') {
       setCommentError(`Tell ${author} what to fix before sending it back.`);
@@ -80,7 +89,7 @@ function ReviewContent({ noteId }: AssistantNoteReviewSheetData) {
       commentRef.current?.focus();
       return;
     }
-    finish();
+    finish(`Sent back to ${author}`);
   };
 
   return (

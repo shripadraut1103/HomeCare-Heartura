@@ -1,20 +1,16 @@
 import { SymbolView } from 'expo-symbols';
-import {
-  Appearance,
-  Pressable,
-  StyleSheet,
-  useColorScheme,
-  type PressableProps,
-} from 'react-native';
+import { Pressable, StyleSheet, useColorScheme, type PressableProps } from 'react-native';
 
+import { setAppearance } from '@/domain/profile/store/PreferencesReducer';
 import { useTheme } from '@/hooks/useTheme';
+import { useAppDispatch } from '@/store/hooks';
 import { haptics } from '@/utils/haptics';
 
 const SIZE = 40;
 
-/** Switches the app between light and dark mode. The choice is not saved between launches. */
 export function ThemeToggle({ style, ...pressableProps }: Omit<PressableProps, 'children'>) {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
   const isDark = useColorScheme() === 'dark';
 
   return (
@@ -24,7 +20,7 @@ export function ThemeToggle({ style, ...pressableProps }: Omit<PressableProps, '
       hitSlop={4}
       onPress={() => {
         haptics.selection();
-        Appearance.setColorScheme(isDark ? 'light' : 'dark');
+        dispatch(setAppearance(isDark ? 'light' : 'dark'));
       }}
       style={(state) => [
         styles.button,

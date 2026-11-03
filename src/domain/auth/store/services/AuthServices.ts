@@ -42,6 +42,24 @@ class AuthService {
     // TEMPORARY: always reports success until the API exists.
     return { data: null };
   }
+
+  async changePassword(data: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<ServiceResult<null>> {
+    // Once the change password contract and AxiosConfig exist:
+    // try {
+    //   await post('<change password endpoint>', data);
+    //   return { data: null };
+    // } catch (error) {
+    //   return { error: getErrorMessage(error), status: <HTTP status from error> };
+    // }
+    // TEMPORARY: checks against the mock user until the API exists (see AuthMocks.ts).
+    if (data.currentPassword !== MOCK_CREDENTIALS.password) {
+      return { error: 'Your current password is incorrect.', status: 401 };
+    }
+    return { data: null };
+  }
 }
 
 export default new AuthService();
