@@ -26,6 +26,9 @@ const isEmpty = (value: NoteFieldValue | undefined) =>
 export const asList = (value: NoteFieldValue | undefined): readonly string[] =>
   Array.isArray(value) ? value : [];
 
+const isSameValue = (a: NoteFieldValue | undefined, b: NoteFieldValue | undefined) =>
+  (isEmpty(a) && isEmpty(b)) || JSON.stringify(a) === JSON.stringify(b);
+
 export function useNoteForm(sections: readonly NoteSection[], initialValues: NoteFormValues = {}) {
   const [values, setValues] = useState<NoteFormValues>(initialValues);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
@@ -38,6 +41,9 @@ export function useNoteForm(sections: readonly NoteSection[], initialValues: Not
       .map((field) => ({ sectionId: section.id, fieldId: field.id }))
   );
   const missingFieldIds = new Set(missing.map(({ fieldId }) => fieldId));
+  const isDirty = Object.keys({ ...initialValues, ...values }).some(
+    (fieldId) => !isSameValue(values[fieldId], initialValues[fieldId])
+  );
 
   const setValue = (fieldId: string, value: NoteFieldValue) =>
     setValues((current) => ({ ...current, [fieldId]: value }));
@@ -81,6 +87,7 @@ export function useNoteForm(sections: readonly NoteSection[], initialValues: Not
 
   return {
     values,
+    isDirty,
     expanded,
     setValue,
     applyValues,

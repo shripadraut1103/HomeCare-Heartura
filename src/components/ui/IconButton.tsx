@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui/Icon';
-import { Radius } from '@/constants/Theme';
+import { Radius, type ThemeColor } from '@/constants/Theme';
 import { useTheme } from '@/hooks/useTheme';
 import { haptics } from '@/utils/haptics';
 
@@ -10,6 +10,7 @@ type IconButtonProps = {
   accessibilityLabel: string;
   onPress?: () => void;
   size?: number;
+  color?: ThemeColor;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -18,6 +19,7 @@ export function IconButton({
   accessibilityLabel,
   onPress,
   size = 52,
+  color = 'accent',
   style,
 }: IconButtonProps) {
   const theme = useTheme();
@@ -41,7 +43,7 @@ export function IconButton({
         pressed && styles.pressed,
         style,
       ]}>
-      <Icon name={icon} size={22} color={theme.accent} />
+      <Icon name={icon} size={22} color={theme[color]} />
     </Pressable>
   );
 }

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedView } from '@/components/ThemedView';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl';
+import { TabPanel } from '@/components/ui/TabPanel';
 import { Spacing } from '@/constants/Theme';
 import { PendingNotesList } from '@/domain/notes/components/PendingNotesList';
 import { ProgressNotesDueList } from '@/domain/notes/components/ProgressNotesDueList';
@@ -48,11 +49,13 @@ export default function NotesScreen() {
           ]}>
           <SegmentedControl segments={TABS} value={tab} onChange={setTab} />
         </View>
-        {tab === 'pending' ? (
-          <PendingNotesList notes={pendingNotes} />
-        ) : (
-          <ProgressNotesDueList notes={progressNotes} />
-        )}
+        <TabPanel tab={tab}>
+          {tab === 'pending' ? (
+            <PendingNotesList notes={pendingNotes} />
+          ) : (
+            <ProgressNotesDueList notes={progressNotes} />
+          )}
+        </TabPanel>
       </SafeAreaView>
     </ThemedView>
   );

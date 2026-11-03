@@ -75,3 +75,32 @@ export function formatTimeRange(start: Date, end: Date) {
     ? `${from.time}–${to.time} ${period(to.period)}`
     : `${from.time} ${period(from.period)}–${to.time} ${period(to.period)}`;
 }
+
+const clockTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: true,
+});
+
+export const formatClockTime = (date: Date) => clockTimeFormatter.format(date).toLowerCase();
+
+const monthDayFormatter = new Intl.DateTimeFormat('en-US', { month: '2-digit', day: '2-digit' });
+
+export const formatMonthDay = (date: Date) => monthDayFormatter.format(date);
+
+const pad = (value: number) => String(value).padStart(2, '0');
+
+export const toIsoDate = (date: Date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+export function parseIsoDate(value: string) {
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+export const toTimeOfDay = (date: Date) => `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+
+export function parseTimeOfDay(value: string, day = new Date()) {
+  const [hours, minutes] = value.split(':').map(Number);
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate(), hours, minutes);
+}
