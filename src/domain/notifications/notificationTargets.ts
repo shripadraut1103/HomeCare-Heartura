@@ -11,15 +11,15 @@ export type NotificationTarget =
 const visitDetails = (notification: AppNotification): NotificationTarget | null =>
   notification.visitId ? { type: 'visit', visitId: notification.visitId } : null;
 
-/**
- * The one place that decides what a notification opens.
- */
 const TARGETS: Record<
   NotificationKind,
   (notification: AppNotification) => NotificationTarget | null
 > = {
   carePlanExpiring: visitDetails,
-  progressNoteDue: () => null,
+  progressNoteDue: () => ({
+    type: 'screen',
+    href: { pathname: '/notes', params: { tab: 'progress' } },
+  }),
   officeMessage: () => null,
   coverageRequest: () => null,
   allotmentChanged: () => null,

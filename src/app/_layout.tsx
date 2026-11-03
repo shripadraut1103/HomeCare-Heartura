@@ -12,6 +12,8 @@ import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { useAppSelector } from '@/store/hooks';
 import { persistor, store } from '@/store/storeConfig';
 
+const PUSHED_SCREEN = { animation: 'ios_from_right', fullScreenGestureEnabled: true } as const;
+
 function RootNavigator() {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
   const colorScheme = useColorScheme();
@@ -25,6 +27,8 @@ function RootNavigator() {
       }}>
       <Stack.Protected guard={isLoggedIn}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="progress-note/[id]" options={PUSHED_SCREEN} />
+        <Stack.Screen name="evaluation/[id]" options={PUSHED_SCREEN} />
       </Stack.Protected>
       <Stack.Protected guard={!isLoggedIn}>
         <Stack.Screen name="(auth)" />

@@ -15,6 +15,7 @@ import { QuickActions } from '@/domain/home/components/QuickActions';
 import { UnscheduledPatientsBanner } from '@/domain/home/components/UnscheduledPatientsBanner';
 import { VisitTimelineItem } from '@/domain/home/components/VisitTimelineItem';
 import { useHomeSummary } from '@/domain/home/hooks/useHomeSummary';
+import type { HomeStat } from '@/domain/home/interfaces/HomeInterfaces';
 import { NotificationsSheet } from '@/domain/notifications/components/NotificationsSheet';
 import { useNotifications } from '@/domain/notifications/hooks/useNotifications';
 import {
@@ -42,6 +43,10 @@ export default function HomeScreen() {
 
   const goToSchedule = () => router.navigate('/schedule');
   const openVisit = (visitId: string) => visitDetailsSheet.current?.present({ visitId });
+  const openStat = (stat: HomeStat) => {
+    if (stat.id === 'notes') router.push({ pathname: '/notes', params: { tab: 'pending' } });
+    if (stat.id === 'progress') router.push({ pathname: '/notes', params: { tab: 'progress' } });
+  };
 
   const listHeader = (
     <View style={styles.listHeader}>
@@ -49,6 +54,7 @@ export default function HomeScreen() {
         greeting={getGreeting(now)}
         firstName={getFirstName(summary.providerName)}
         stats={summary.stats}
+        onStatPress={openStat}
       />
       <View style={styles.actions}>
         <UnscheduledPatientsBanner
