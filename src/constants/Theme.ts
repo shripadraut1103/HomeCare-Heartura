@@ -1,9 +1,4 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://unistyl.es/), etc.
- */
-
-import { Platform } from 'react-native';
+import { Platform, type ViewStyle } from 'react-native';
 
 export const Colors = {
   light: {
@@ -20,6 +15,17 @@ export const Colors = {
     error: '#D92D20',
     success: '#2F9E62',
     successMuted: '#E3F5EA',
+    onError: '#FFFFFF',
+    accent: '#2E6B6E',
+    warning: '#F2C94C',
+    toneBlueBg: '#E6EEF9',
+    toneBlueFg: '#1E4E9C',
+    toneAmberBg: '#FCF1DC',
+    toneAmberFg: '#B5651D',
+    toneRedBg: '#F9E4E1',
+    toneRedFg: '#B3342B',
+    toneRoseBg: '#F7E1E3',
+    toneRoseFg: '#B3342B',
   },
   dark: {
     text: '#ffffff',
@@ -35,10 +41,26 @@ export const Colors = {
     error: '#F97066',
     success: '#4CC38A',
     successMuted: '#163626',
+    onError: '#1A0503',
+    accent: '#7CC4C7',
+    warning: '#D9B23E',
+    toneBlueBg: '#16243A',
+    toneBlueFg: '#8DB4F0',
+    toneAmberBg: '#33270F',
+    toneAmberFg: '#F2B66B',
+    toneRedBg: '#3A1A18',
+    toneRedFg: '#F08A80',
+    toneRoseBg: '#3A1C22',
+    toneRoseFg: '#F08A80',
   },
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
+
+export const Gradients = {
+  light: { greeting: 'linear-gradient(135deg, #ECE6F7 0%, #F5F3FB 45%, #FFFFFF 100%)' },
+  dark: { greeting: 'linear-gradient(135deg, #231E33 0%, #17161D 55%, #111214 100%)' },
+} as const;
 
 export const Fonts = Platform.select({
   ios: {
@@ -75,6 +97,21 @@ export const Radius = {
   small: 8,
   medium: 12,
   large: 16,
+  full: 999,
+} as const;
+
+/**
+ * Drop shadows. Android uses native `elevation`, which the system draws cheaply while scrolling;
+ * CSS `boxShadow` blurs are costly there. iOS keeps the softer `boxShadow`.
+ * The element needs a solid `backgroundColor` for the Android shadow to show.
+ */
+const shadow = (elevation: number, boxShadow: string): ViewStyle =>
+  Platform.OS === 'android' ? { elevation, shadowColor: '#101828' } : { boxShadow };
+
+export const Shadows = {
+  card: shadow(2, '0 2px 10px rgba(16, 24, 40, 0.06)'),
+  raised: shadow(3, '0 4px 16px rgba(16, 24, 40, 0.08)'),
+  floating: shadow(10, '0 8px 24px rgba(16, 24, 40, 0.12)'),
 } as const;
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;

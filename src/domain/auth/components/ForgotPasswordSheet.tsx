@@ -1,16 +1,16 @@
 import {
-  BottomSheetBackdrop,
-  BottomSheetModal,
   BottomSheetTextInput,
   BottomSheetView,
   useBottomSheetModal,
-  type BottomSheetBackdropProps,
+  type BottomSheetModal,
 } from '@gorhom/bottom-sheet';
 import { SymbolView } from 'expo-symbols';
 import type { Ref } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppBottomSheet } from '@/components/sheet/AppBottomSheet';
+import { SheetHeader } from '@/components/sheet/SheetHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { Button } from '@/components/ui/Button';
 import { FormTextField } from '@/components/ui/FormTextField';
@@ -19,7 +19,6 @@ import { Spacing } from '@/constants/Theme';
 import { useForgotPasswordForm } from '@/domain/auth/hooks/useForgotPasswordForm';
 import { useTheme } from '@/hooks/useTheme';
 
-const SHEET_RADIUS = 24;
 const SENT_ICON_SIZE = 56;
 
 // Its ref type also allows `undefined`; the instance is still a regular TextInput.
@@ -27,30 +26,19 @@ const SheetTextInput = BottomSheetTextInput as NonNullable<TextFieldProps['Input
 
 export type ForgotPasswordSheetData = { email: string };
 
-const renderBackdrop = (props: BottomSheetBackdropProps) => (
-  <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} pressBehavior="close" />
-);
-
-/** Open with `ref.current?.present({ email })`. */
 export function ForgotPasswordSheet({
   ref,
 }: {
   ref: Ref<BottomSheetModal<ForgotPasswordSheetData>>;
 }) {
-  const theme = useTheme();
-
   return (
-    <BottomSheetModal<ForgotPasswordSheetData>
+    <AppBottomSheet<ForgotPasswordSheetData>
       ref={ref}
-      backdropComponent={renderBackdrop}
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
-      backgroundStyle={{ backgroundColor: theme.background, borderRadius: SHEET_RADIUS }}
-      handleIndicatorStyle={[styles.handle, { backgroundColor: theme.border }]}>
-      {/* The sheet calls this as a plain function, so render the content as its own component. */}
+      android_keyboardInputMode="adjustResize">
       {({ data }) => <ForgotPasswordContent data={data} />}
-    </BottomSheetModal>
+    </AppBottomSheet>
   );
 }
 
@@ -66,22 +54,7 @@ function ForgotPasswordContent({ data }: { data?: ForgotPasswordSheetData }) {
 
   return (
     <BottomSheetView style={{ paddingBottom: insets.bottom + Spacing.three }}>
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <ThemedText accessibilityRole="header" style={styles.title}>
-          Forgot your password?
-        </ThemedText>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close"
-          hitSlop={8}
-          onPress={close}>
-          <SymbolView
-            name={{ ios: 'xmark', android: 'close', web: 'close' }}
-            size={22}
-            tintColor={theme.text}
-          />
-        </Pressable>
-      </View>
+      <SheetHeader title="Forgot your password?" onClose={close} />
 
       <View style={styles.body}>
         {sentTo ? (
@@ -167,25 +140,6 @@ function ForgotPasswordContent({ data }: { data?: ForgotPasswordSheetData }) {
 }
 
 const styles = StyleSheet.create({
-  handle: {
-    width: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.two,
-    paddingBottom: Spacing.three,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  title: {
-    flexShrink: 1,
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: 700,
-  },
   body: {
     gap: Spacing.three,
     padding: Spacing.four,
