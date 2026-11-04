@@ -19,6 +19,7 @@ export type TextFieldProps = TextInputProps & {
   error?: string;
   required?: boolean;
   labelHint?: string;
+  hideLabel?: boolean;
   labelStyle?: StyleProp<TextStyle>;
   accessory?: ReactNode;
   ref?: InputRef;
@@ -30,6 +31,7 @@ export function TextField({
   error,
   required = false,
   labelHint,
+  hideLabel = false,
   labelStyle,
   accessory,
   style,
@@ -46,19 +48,21 @@ export function TextField({
 
   return (
     <View style={styles.container}>
-      <ThemedText type="smallBold" themeColor="textSecondary" style={[styles.label, labelStyle]}>
-        {label}
-        {labelHint ? (
-          <ThemedText themeColor="textSecondary" style={[labelStyle, styles.labelHint]}>
-            {`  ${labelHint}`}
-          </ThemedText>
-        ) : null}
-        {required ? (
-          <ThemedText themeColor="error" style={labelStyle}>
-            {'  *'}
-          </ThemedText>
-        ) : null}
-      </ThemedText>
+      {hideLabel ? null : (
+        <ThemedText type="smallBold" themeColor="textSecondary" style={[styles.label, labelStyle]}>
+          {label}
+          {labelHint ? (
+            <ThemedText themeColor="textSecondary" style={[labelStyle, styles.labelHint]}>
+              {`  ${labelHint}`}
+            </ThemedText>
+          ) : null}
+          {required ? (
+            <ThemedText themeColor="error" style={labelStyle}>
+              {'  *'}
+            </ThemedText>
+          ) : null}
+        </ThemedText>
+      )}
       <View>
         <InputComponent
           ref={ref}

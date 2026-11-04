@@ -34,3 +34,12 @@ export const EDITABLE_VISIT_STATUSES: readonly VisitStatus[] = [
   'noShow',
   'rescheduled',
 ];
+
+export const ALL_VISIT_STATUSES = Object.keys(VISIT_STATUS) as VisitStatus[];
+
+const NOT_HAPPENING: readonly VisitStatus[] = ['cancelled', 'noShow', 'rescheduled'];
+
+export const isVisitHappening = (status: VisitStatus) => !NOT_HAPPENING.includes(status);
+
+export const isVisitStruckOut = (status: VisitStatus) =>
+  status === 'cancelled' || status === 'noShow';

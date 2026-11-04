@@ -40,7 +40,14 @@ const startOfDay = (date: Date) =>
 
 export function formatRelativeDay(date: Date, now = new Date()) {
   const days = Math.round((startOfDay(date) - startOfDay(now)) / 86_400_000);
-  const day = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : weekdayFormatter.format(date);
+  const day =
+    days === 0
+      ? 'Today'
+      : days === 1
+        ? 'Tomorrow'
+        : days === -1
+          ? 'Yesterday'
+          : weekdayFormatter.format(date);
   return `${day}, ${shortDateFormatter.format(date)}`;
 }
 

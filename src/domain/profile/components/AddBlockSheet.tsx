@@ -17,7 +17,7 @@ import { FormTextField } from '@/components/ui/FormTextField';
 import { Icon } from '@/components/ui/Icon';
 import type { TextFieldProps } from '@/components/ui/TextField';
 import { Radius, Spacing } from '@/constants/Theme';
-import { DateTimeField } from '@/domain/profile/components/DateTimeField';
+import { DateTimeField } from '@/components/ui/DateTimeField';
 import { ToggleRow } from '@/domain/profile/components/ToggleRow';
 import { useAddBlockForm } from '@/domain/profile/hooks/useAddBlockForm';
 import { useTheme } from '@/hooks/useTheme';

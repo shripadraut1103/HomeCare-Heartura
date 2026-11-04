@@ -6,7 +6,7 @@ import {
   fieldPlaceholder,
   formatFieldValue,
   type DateTimeFieldProps,
-} from '@/domain/profile/components/DateTimeFieldBox';
+} from '@/components/ui/DateTimeFieldBox';
 import { useTheme } from '@/hooks/useTheme';
 
 const DATE = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;

@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { Spacing } from '@/constants/Theme';
 import { DEFAULT_SLOT } from '@/domain/profile/availability';
-import { AppSwitch } from '@/domain/profile/components/AppSwitch';
-import { DateTimeField } from '@/domain/profile/components/DateTimeField';
+import { AppSwitch } from '@/components/ui/AppSwitch';
+import { DateTimeField } from '@/components/ui/DateTimeField';
 import type {
   AvailabilityFormValues,
   AvailabilitySlotValues,

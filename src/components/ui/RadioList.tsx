@@ -43,15 +43,7 @@ export function RadioList<T extends string>({ options, value, onChange }: RadioL
               styles.row,
               index < options.length - 1 && [styles.divider, { borderBottomColor: theme.border }],
             ]}>
-            <View
-              style={[
-                styles.radio,
-                { borderColor: selected ? theme.primary : theme.textSecondary },
-              ]}>
-              {selected ? (
-                <View style={[styles.radioDot, { backgroundColor: theme.primary }]} />
-              ) : null}
-            </View>
+            <RadioMark selected={selected} />
             {option.dotColor ? (
               <View style={[styles.colorDot, { backgroundColor: theme[option.dotColor] }]} />
             ) : null}
@@ -59,6 +51,16 @@ export function RadioList<T extends string>({ options, value, onChange }: RadioL
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+export function RadioMark({ selected }: { selected: boolean }) {
+  const theme = useTheme();
+
+  return (
+    <View style={[styles.radio, { borderColor: selected ? theme.primary : theme.textSecondary }]}>
+      {selected ? <View style={[styles.radioDot, { backgroundColor: theme.primary }]} /> : null}
     </View>
   );
 }

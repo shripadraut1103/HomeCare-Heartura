@@ -20,8 +20,14 @@ const VisitsReducer = createSlice({
       const visit = state.items.find((item) => item.id === action.payload.visitId);
       if (visit) visit.status = action.payload.status;
     },
+    addVisits: (state, action: PayloadAction<Visit[]>) => {
+      state.items.push(...action.payload);
+    },
+    removeVisits: (state, action: PayloadAction<{ ids: string[] }>) => {
+      state.items = state.items.filter((visit) => !action.payload.ids.includes(visit.id));
+    },
   },
 });
 
 export default VisitsReducer.reducer;
-export const { setVisitStatus } = VisitsReducer.actions;
+export const { setVisitStatus, addVisits, removeVisits } = VisitsReducer.actions;
