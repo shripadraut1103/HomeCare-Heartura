@@ -10,7 +10,7 @@ import {
   DateTimeFieldBox,
   DateTimeValueText,
   type DateTimeFieldProps,
-} from '@/domain/profile/components/DateTimeFieldBox';
+} from '@/components/ui/DateTimeFieldBox';
 import { useTheme } from '@/hooks/useTheme';
 
 export function DateTimeField({

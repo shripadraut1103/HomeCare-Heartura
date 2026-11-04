@@ -32,8 +32,10 @@ type SelectProps<T extends string> = {
   required?: boolean;
   error?: string;
   options: readonly SelectOption<T>[];
-  value: T;
+  value: T | null;
   onChange: (value: T) => void;
+  placeholder?: string;
+  disabled?: boolean;
 };
 
 type Anchor = { x: number; y: number; width: number; height: number };
@@ -46,6 +48,8 @@ export function Select<T extends string>({
   options,
   value,
   onChange,
+  placeholder,
+  disabled = false,
 }: SelectProps<T>) {
   const theme = useTheme();
   const triggerRef = useRef<ComponentRef<typeof View>>(null);
@@ -87,7 +91,8 @@ export function Select<T extends string>({
         accessibilityRole="combobox"
         accessibilityLabel={label}
         accessibilityValue={{ text: selected?.label }}
-        accessibilityState={{ expanded: open }}
+        accessibilityState={{ expanded: open, disabled }}
+        disabled={disabled}
         onPress={openMenu}
         style={[
           styles.trigger,
@@ -97,8 +102,11 @@ export function Select<T extends string>({
           },
           open && { outlineColor: theme.primaryMuted, outlineWidth: 3, outlineStyle: 'solid' },
         ]}>
-        <ThemedText numberOfLines={1} style={styles.value}>
-          {selected?.label}
+        <ThemedText
+          numberOfLines={1}
+          themeColor={selected ? 'text' : 'textSecondary'}
+          style={styles.value}>
+          {selected ? selected.label : (placeholder ?? ' ')}
           {selected?.hint ? ` · ${selected.hint}` : ''}
         </ThemedText>
         <Icon

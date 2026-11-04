@@ -4,7 +4,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { Pill } from '@/components/ui/Pill';
 import { Radius, Shadows, Spacing } from '@/constants/Theme';
 import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
-import { VISIT_STATUS } from '@/domain/visits/visitStatus';
+import { isVisitStruckOut, VISIT_STATUS } from '@/domain/visits/visitStatus';
 import { useTheme } from '@/hooks/useTheme';
 import { formatTimeParts } from '@/utils/dateFormat';
 
@@ -46,7 +46,9 @@ export function VisitCard({ visit, onPress, style }: VisitCardProps) {
       </View>
 
       <View style={styles.details}>
-        <ThemedText numberOfLines={1} style={styles.name}>
+        <ThemedText
+          numberOfLines={1}
+          style={[styles.name, isVisitStruckOut(visit.status) && styles.struck]}>
           {visit.patientName}
           <ThemedText themeColor="textSecondary" style={styles.tag}>
             {' '}
@@ -109,6 +111,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     fontWeight: 700,
+  },
+  struck: {
+    textDecorationLine: 'line-through',
   },
   tag: {
     fontSize: 16,

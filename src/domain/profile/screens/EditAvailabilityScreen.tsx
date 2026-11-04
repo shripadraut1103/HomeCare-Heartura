@@ -8,7 +8,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Spacing } from '@/constants/Theme';
 import { WEEKDAYS } from '@/domain/profile/availability';
 import { AvailabilityDayEditor } from '@/domain/profile/components/AvailabilityDayEditor';
-import { DateTimeField } from '@/domain/profile/components/DateTimeField';
+import { DateTimeField } from '@/components/ui/DateTimeField';
 import { ModalFormLayout } from '@/domain/profile/components/ModalFormLayout';
 import { useAvailabilityForm } from '@/domain/profile/hooks/useAvailabilityForm';
 import { useTheme } from '@/hooks/useTheme';

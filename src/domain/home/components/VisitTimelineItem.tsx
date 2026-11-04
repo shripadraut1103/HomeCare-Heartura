@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { Spacing } from '@/constants/Theme';
 import { VisitCard } from '@/domain/visits/components/VisitCard';
 import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
+import { VISIT_STATUS } from '@/domain/visits/visitStatus';
 import { useTheme } from '@/hooks/useTheme';
 
 const RAIL_WIDTH = 24;
@@ -30,7 +31,7 @@ export function VisitTimelineItem({ visit, isFirst, isLast, onPress }: VisitTime
             isLast && styles.lineToCenter,
           ]}
         />
-        <View style={[styles.dot, { backgroundColor: theme.primary }]} />
+        <View style={[styles.dot, { backgroundColor: theme[VISIT_STATUS[visit.status].dot] }]} />
       </View>
       <VisitCard visit={visit} onPress={onPress} style={styles.card} />
     </View>

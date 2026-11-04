@@ -33,6 +33,7 @@ function RootNavigator() {
         <Stack.Screen name="evaluation/[id]" options={PUSHED_SCREEN} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="edit-availability" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="schedule-appointment" options={{ presentation: 'fullScreenModal' }} />
       </Stack.Protected>
       <Stack.Protected guard={!isLoggedIn}>
         <Stack.Screen name="(auth)" />

@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Spacing } from '@/constants/Theme';
-import { AppSwitch } from '@/domain/profile/components/AppSwitch';
+import { AppSwitch } from '@/components/ui/AppSwitch';
 import { useTheme } from '@/hooks/useTheme';
 
 type ToggleRowProps = {
