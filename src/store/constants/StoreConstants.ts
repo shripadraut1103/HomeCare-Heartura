@@ -13,3 +13,5 @@ export const PREFERENCES_REDUCER = 'preferences';
 export const BLOCK_DAYS_REDUCER = 'blockDays';
 
 export const AVAILABILITY_REDUCER = 'availability';
+
+export const COMMUNICATIONS_REDUCER = 'communications';

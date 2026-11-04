@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
@@ -21,7 +21,7 @@ export function ModalFormLayout({ title, children, footer }: ModalFormLayoutProp
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView edges={['top']} style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <Pressable
             accessibilityRole="button"
@@ -43,7 +43,7 @@ export function ModalFormLayout({ title, children, footer }: ModalFormLayoutProp
           showsVerticalScrollIndicator={false}>
           {children}
         </ScrollView>
-      </SafeAreaView>
+      </View>
 
       <View
         style={[

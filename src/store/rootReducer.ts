@@ -1,6 +1,7 @@
 import { combineReducers, type Reducer } from '@reduxjs/toolkit';
 
 import authReducer from '@/domain/auth/store/AuthReducer';
+import communicationsReducer from '@/domain/communications/store/CommunicationsReducer';
 import notesReducer from '@/domain/notes/store/NotesReducer';
 import availabilityReducer from '@/domain/profile/store/AvailabilityReducer';
 import blockDaysReducer from '@/domain/profile/store/BlockDaysReducer';
@@ -15,6 +16,7 @@ export const rootReducer: Reducer<AppState> = combineReducers({
   auth: authReducer,
   availability: availabilityReducer,
   blockDays: blockDaysReducer,
+  communications: communicationsReducer,
   notes: notesReducer,
   preferences: preferencesReducer,
   profile: profileReducer,
