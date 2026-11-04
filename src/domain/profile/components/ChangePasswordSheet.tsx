@@ -6,14 +6,14 @@ import {
 } from '@gorhom/bottom-sheet';
 import { useState, type Ref } from 'react';
 import type { Control } from 'react-hook-form';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppBottomSheet } from '@/components/sheet/AppBottomSheet';
 import { SheetHeader } from '@/components/sheet/SheetHeader';
 import { Button } from '@/components/ui/Button';
 import { FormTextField } from '@/components/ui/FormTextField';
-import { Icon } from '@/components/ui/Icon';
+import { PasswordVisibilityToggle } from '@/components/ui/PasswordVisibilityToggle';
 import type { TextFieldProps } from '@/components/ui/TextField';
 import { Spacing } from '@/constants/Theme';
 import { PasswordRules } from '@/domain/profile/components/PasswordRules';
@@ -101,7 +101,6 @@ type PasswordFieldProps = Omit<TextFieldProps, 'value' | 'onChangeText' | 'error
 
 /** Password input with a show / hide toggle. */
 function PasswordField({ control, name, label, ...fieldProps }: PasswordFieldProps) {
-  const theme = useTheme();
   const [visible, setVisible] = useState(false);
 
   return (
@@ -117,24 +116,11 @@ function PasswordField({ control, name, label, ...fieldProps }: PasswordFieldPro
       autoCorrect={false}
       style={styles.input}
       accessory={
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={
-            visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`
-          }
-          hitSlop={8}
-          onPress={() => setVisible((current) => !current)}
-          style={styles.toggle}>
-          <Icon
-            name={
-              visible
-                ? { ios: 'eye.slash', android: 'visibility_off' }
-                : { ios: 'eye', android: 'visibility' }
-            }
-            size={20}
-            color={theme.textSecondary}
-          />
-        </Pressable>
+        <PasswordVisibilityToggle
+          label={label}
+          visible={visible}
+          onToggle={() => setVisible((current) => !current)}
+        />
       }
     />
   );
@@ -154,9 +140,6 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 48,
     paddingRight: Spacing.six,
-  },
-  toggle: {
-    padding: Spacing.one + Spacing.half,
   },
   footer: {
     flexDirection: 'row',

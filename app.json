@@ -45,7 +45,16 @@
         {
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID to unlock the app."
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos so you can share them in messages.",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to use the camera so you can share photos in messages.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

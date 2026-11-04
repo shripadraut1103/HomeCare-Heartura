@@ -1,14 +1,14 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/BrandLogo';
 import { ThemedText } from '@/components/ThemedText';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { ThemedView } from '@/components/ThemedView';
+import { PasswordVisibilityToggle } from '@/components/ui/PasswordVisibilityToggle';
 import { Button } from '@/components/ui/Button';
 import { FormTextField } from '@/components/ui/FormTextField';
 import { Radius, Shadows, Spacing } from '@/constants/Theme';
@@ -27,6 +27,7 @@ export default function LoginScreen() {
   const biometricUnlock = useAppSelector((state) => state.preferences.biometricUnlock);
   const forgotPasswordSheet = useRef<BottomSheetModal<ForgotPasswordSheetData>>(null);
   const { control, focusPassword, getEmail, submit, isSubmitting, serverError } = useLoginForm();
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   return (
     <ThemedView type="backgroundScreen" style={styles.container}>
@@ -38,7 +39,6 @@ export default function LoginScreen() {
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled">
             <ThemedView style={[styles.card, { borderColor: theme.border }]}>
-              <ThemeToggle style={styles.themeToggle} />
               <View style={styles.logo}>
                 <BrandLogo />
               </View>
@@ -70,7 +70,15 @@ export default function LoginScreen() {
                   control={control}
                   name="password"
                   label="Password"
-                  secureTextEntry
+                  secureTextEntry={!passwordVisible}
+                  autoCorrect={false}
+                  accessory={
+                    <PasswordVisibilityToggle
+                      label="Password"
+                      visible={passwordVisible}
+                      onToggle={() => setPasswordVisible((current) => !current)}
+                    />
+                  }
                   autoCapitalize="none"
                   autoComplete="password"
                   textContentType="password"
@@ -140,12 +148,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: Radius.large,
     ...Shadows.raised,
-  },
-  themeToggle: {
-    position: 'absolute',
-    top: Spacing.three,
-    right: Spacing.three,
-    zIndex: 1,
   },
   logo: {
     alignItems: 'center',

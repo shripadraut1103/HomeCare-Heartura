@@ -1,4 +1,5 @@
 import type { AuthState } from '@/domain/auth/interfaces/AuthInterfaces';
+import type { CommunicationsState } from '@/domain/communications/interfaces/CommunicationInterfaces';
 import type { NotesState } from '@/domain/notes/store/NotesReducer';
 import type {
   AvailabilityState,
@@ -14,6 +15,7 @@ export interface AppState {
   auth: AuthState;
   availability: AvailabilityState;
   blockDays: BlockDaysState;
+  communications: CommunicationsState;
   notes: NotesState;
   preferences: PreferencesState;
   profile: ProfileState;

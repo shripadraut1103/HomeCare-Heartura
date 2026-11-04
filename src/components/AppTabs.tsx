@@ -4,9 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabBarButton } from '@/components/navigation/TabBarButton';
 import { Radius, Shadows, Spacing } from '@/constants/Theme';
+import { useUnreadMessageCount } from '@/domain/communications/hooks/useCommunications';
 import { useTheme } from '@/hooks/useTheme';
-
-const MOCK_UNREAD_MESSAGES = 6;
 
 export const TAB_BAR_HEIGHT = 76;
 const BAR_GAP = Spacing.two;
@@ -19,6 +18,7 @@ export function useTabBarSpace() {
 export default function AppTabs() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const unreadMessages = useUnreadMessageCount();
 
   return (
     <Tabs style={styles.container}>
@@ -45,7 +45,7 @@ export default function AppTabs() {
           <TabBarButton
             label="Communications"
             icon={{ ios: 'bubble.left', android: 'chat_bubble' }}
-            badgeCount={MOCK_UNREAD_MESSAGES}
+            badgeCount={unreadMessages}
           />
         </TabTrigger>
         <TabTrigger name="profile" href="/profile" asChild>
