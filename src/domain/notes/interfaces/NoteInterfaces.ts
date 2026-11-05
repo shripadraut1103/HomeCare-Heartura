@@ -38,7 +38,9 @@ export interface PreviousNote {
   answers: NoteFormValues;
 }
 
-export type NoteTemplateKind = 'progress' | 'evaluation';
+export type NoteTemplateKind = 'progress' | 'evaluation' | 'carePlan' | 'dailyNote';
+
+export type PreviousNoteKind = 'evaluation' | 'carePlan';
 
 export interface AssistantNoteReview {
   noteType: string;
@@ -103,6 +105,7 @@ export type NoteField =
       numeric?: boolean;
       narrow?: boolean;
       locked?: boolean;
+      showWhen?: { id: string; value: string };
     }
   | {
       type: 'select';
@@ -112,7 +115,14 @@ export type NoteField =
       placeholder?: string;
       required?: boolean;
     }
-  | { type: 'multiSelect'; id: string; label: string; options: readonly string[] }
+  | {
+      type: 'choice';
+      id: string;
+      label: string;
+      options: readonly string[];
+      required?: boolean;
+    }
+  | { type: 'multiSelect'; id: string; label?: string; options: readonly string[] }
   | {
       type: 'group';
       caption?: string;
@@ -130,6 +140,7 @@ export type NoteField =
       blockTitle?: string;
       addStyle?: 'link' | 'dashed';
       max?: number;
+      fixed?: boolean;
     }
   | { type: 'divider' }
   | { type: 'notice'; text: string };
@@ -137,6 +148,43 @@ export type NoteField =
 export type NoteFieldValue = string | readonly string[];
 
 export type NoteFormValues = Record<string, NoteFieldValue>;
+
+export type GoalTracking = 'Percentage' | 'Trials' | 'Duration';
+
+export interface DailyNoteGoal {
+  id: string;
+  text: string;
+  trackedAs: GoalTracking;
+}
+
+export interface DailyNoteDefaults {
+  provider: string;
+  durationMinutes: number;
+  serviceLocations: readonly string[];
+  procedureCodes: readonly string[];
+  authorization?: string;
+  unitsWeekOf: string;
+  goals: readonly DailyNoteGoal[];
+}
+
+export interface Signature {
+  signer: string;
+  strokes: readonly (readonly { x: number; y: number }[])[];
+  signedAt: string;
+}
+
+export interface IncidentReport {
+  id: string;
+  occurredAt: string;
+  description: string;
+}
+
+export interface NoteComponent {
+  id: string;
+  title: string;
+  sectionId: string;
+  fields: readonly NoteField[];
+}
 
 export interface NoteSection {
   id: string;

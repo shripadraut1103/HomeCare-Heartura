@@ -10,9 +10,16 @@ type ChipGroupProps = {
   selected: readonly string[];
   onToggle: (option: string) => void;
   dotColors?: Partial<Record<string, ThemeColor>>;
+  single?: boolean;
 };
 
-export function ChipGroup({ options, selected, onToggle, dotColors }: ChipGroupProps) {
+export function ChipGroup({
+  options,
+  selected,
+  onToggle,
+  dotColors,
+  single = false,
+}: ChipGroupProps) {
   const theme = useTheme();
 
   return (
@@ -23,8 +30,8 @@ export function ChipGroup({ options, selected, onToggle, dotColors }: ChipGroupP
         return (
           <Pressable
             key={option}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: isSelected }}
+            accessibilityRole={single ? 'radio' : 'checkbox'}
+            accessibilityState={single ? { selected: isSelected } : { checked: isSelected }}
             onPress={() => {
               haptics.selection();
               onToggle(option);

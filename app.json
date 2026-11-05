@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/images/icon.png",
-      "bundleIdentifier": "com.thinkitive.heartura"
+      "bundleIdentifier": "com.thinkitive.heartura",
+      "appleTeamId": "39HKKMB693"
     },
     "android": {
       "adaptiveIcon": {

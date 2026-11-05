@@ -108,12 +108,36 @@ export function FormField({ field, note, form }: FormFieldProps) {
       );
     case 'notice':
       return <InfoNote text={field.text} style={styles.notice} />;
-    case 'multiSelect':
+    case 'choice': {
+      const value = asText(form.values[field.id]);
       return (
         <View style={styles.group}>
           <ThemedText themeColor="textSecondary" style={styles.label}>
             {field.label}
+            {field.required ? <ThemedText themeColor="error">{'  *'}</ThemedText> : null}
           </ThemedText>
+          <ChipGroup
+            single
+            options={field.options}
+            selected={value ? [value] : []}
+            onToggle={(option) => form.setValue(field.id, option === value ? '' : option)}
+          />
+          {form.errorFor(field.id) ? (
+            <ThemedText themeColor="error" style={styles.label}>
+              {form.errorFor(field.id)}
+            </ThemedText>
+          ) : null}
+        </View>
+      );
+    }
+    case 'multiSelect':
+      return (
+        <View style={styles.group}>
+          {field.label ? (
+            <ThemedText themeColor="textSecondary" style={styles.label}>
+              {field.label}
+            </ThemedText>
+          ) : null}
           <ChipGroup
             options={field.options}
             selected={asList(form.values[field.id])}
@@ -122,6 +146,8 @@ export function FormField({ field, note, form }: FormFieldProps) {
         </View>
       );
     case 'shortText': {
+      if (field.showWhen && asText(form.values[field.showWhen.id]) !== field.showWhen.value)
+        return null;
       const input = (
         <TextField
           label={field.label}
@@ -233,6 +259,12 @@ function Subsection({
 function scopeField(field: NoteField, prefix: string): NoteField {
   if (field.type === 'group' || field.type === 'subsection')
     return { ...field, fields: field.fields.map((child) => scopeField(child, prefix)) };
+  if (field.type === 'shortText' && field.showWhen)
+    return {
+      ...field,
+      id: `${prefix}${field.id}`,
+      showWhen: { ...field.showWhen, id: `${prefix}${field.showWhen.id}` },
+    };
   return 'id' in field ? { ...field, id: `${prefix}${field.id}` } : field;
 }
 
@@ -249,7 +281,7 @@ function RepeatField({
 }) {
   const theme = useTheme();
   const keys = asList(form.values[field.id]);
-  const canAdd = field.max === undefined || keys.length < field.max;
+  const canAdd = !field.fixed && (field.max === undefined || keys.length < field.max);
   const add = () => form.setValue(field.id, [...keys, newBlockKey()]);
   const plus = { ios: 'plus', android: 'add' } as const;
 
@@ -269,6 +301,13 @@ function RepeatField({
             form={form}
           />
         ));
+
+        if (field.fixed)
+          return (
+            <View key={key} style={styles.stack}>
+              {fields}
+            </View>
+          );
 
         return field.blockTitle ? (
           <View key={key} style={[styles.blockCard, { borderColor: theme.border }]}>

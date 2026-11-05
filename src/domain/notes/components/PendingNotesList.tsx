@@ -34,6 +34,10 @@ export function PendingNotesList({ notes }: { notes: PendingNote[] }) {
     if (note.review) reviewSheet.current?.present({ noteId: note.id });
     else if (note.kind === 'evaluation' && note.draft)
       router.push({ pathname: '/evaluation/[id]', params: { id: note.id } });
+    else if (note.kind === 'carePlan' && note.draft)
+      router.push({ pathname: '/care-plan/[id]', params: { id: note.id } });
+    else if (note.kind === 'dailyNote' && note.draft)
+      router.push({ pathname: '/daily-note/[id]', params: { id: note.id } });
   };
 
   const renderNote: SectionListRenderItem<PendingNote, NoteSection> = ({ item }) => (

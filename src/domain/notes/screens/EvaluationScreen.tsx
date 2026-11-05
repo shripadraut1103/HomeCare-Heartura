@@ -1,5 +1,5 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -23,6 +23,7 @@ import {
 import { useNoteForm } from '@/domain/notes/hooks/useNoteForm';
 import { useNoteTemplates, usePendingNote } from '@/domain/notes/hooks/useNotes';
 import type { PreviousNote } from '@/domain/notes/interfaces/NoteInterfaces';
+import { INTAKE_STEP, INTAKE_STEPS } from '@/domain/notes/noteRules';
 import { IspSheet, type IspSheetData } from '@/domain/patients/components/IspSheet';
 import { useTheme } from '@/hooks/useTheme';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
@@ -31,8 +32,6 @@ import { useAppDispatch } from '@/store/hooks';
 import { confirm } from '@/utils/confirm';
 import { formatRelativeDay, formatTime } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
-
-const INTAKE_STEPS = ['Evaluation', 'Care plan', 'Daily note'] as const;
 
 export default function EvaluationScreen() {
   const theme = useTheme();
@@ -91,7 +90,14 @@ export default function EvaluationScreen() {
     <NoteEditorLayout
       title="Evaluation"
       subtitle={`${note.patientName} · ${formatTime(visitAt)}`}
-      top={<StepProgress steps={INTAKE_STEPS} current={0} />}
+      top={
+        <StepProgress
+          steps={INTAKE_STEPS}
+          current={INTAKE_STEP.evaluation}
+          selectable={[INTAKE_STEP.carePlan]}
+          onSelect={() => router.push({ pathname: '/care-plan/[id]', params: { id: note.id } })}
+        />
+      }
       banner={
         <NotePatientCard
           patientName={note.patientName}
@@ -158,7 +164,11 @@ export default function EvaluationScreen() {
           icon={{ ios: 'doc.on.doc', android: 'content_copy' }}
           accessibilityLabel="Copy from a previous evaluation"
           onPress={() =>
-            copySheet.current?.present({ patientId: note.patientId, patientName: note.patientName })
+            copySheet.current?.present({
+              kind: 'evaluation',
+              patientId: note.patientId,
+              patientName: note.patientName,
+            })
           }
         />
       </View>

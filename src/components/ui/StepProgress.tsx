@@ -1,17 +1,20 @@
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Radius, Spacing } from '@/constants/Theme';
 import { useTheme } from '@/hooks/useTheme';
+import { haptics } from '@/utils/haptics';
 
 const BAR_HEIGHT = 5;
 
 type StepProgressProps = {
   steps: readonly string[];
   current: number;
+  selectable?: readonly number[];
+  onSelect?: (index: number) => void;
 };
 
-export function StepProgress({ steps, current }: StepProgressProps) {
+export function StepProgress({ steps, current, selectable = [], onSelect }: StepProgressProps) {
   const theme = useTheme();
 
   return (
@@ -21,8 +24,8 @@ export function StepProgress({ steps, current }: StepProgressProps) {
       style={[styles.row, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
       {steps.map((step, index) => {
         const reached = index <= current;
-        return (
-          <View key={step} style={styles.step}>
+        const content = (
+          <>
             <View
               style={[styles.bar, { backgroundColor: reached ? theme.accent : theme.border }]}
             />
@@ -32,6 +35,25 @@ export function StepProgress({ steps, current }: StepProgressProps) {
               style={[styles.label, index === current && styles.current]}>
               {index + 1}. {step}
             </ThemedText>
+          </>
+        );
+
+        return onSelect && index !== current && selectable.includes(index) ? (
+          <Pressable
+            key={step}
+            accessibilityRole="button"
+            accessibilityLabel={`Go to step ${index + 1}, ${step}`}
+            hitSlop={{ top: Spacing.three, bottom: Spacing.two }}
+            onPress={() => {
+              haptics.selection();
+              onSelect(index);
+            }}
+            style={({ pressed }) => [styles.step, pressed && styles.pressed]}>
+            {content}
+          </Pressable>
+        ) : (
+          <View key={step} style={styles.step}>
+            {content}
           </View>
         );
       })}
@@ -63,5 +85,8 @@ const styles = StyleSheet.create({
   },
   current: {
     fontWeight: 600,
+  },
+  pressed: {
+    opacity: 0.6,
   },
 });

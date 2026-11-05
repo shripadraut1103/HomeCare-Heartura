@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Spacing } from '@/constants/Theme';
@@ -10,9 +11,10 @@ type NoteSectionListProps = {
   sections: readonly NoteSection[];
   form: NoteForm;
   note?: ProgressNoteDue;
+  bodies?: Partial<Record<string, ReactNode>>;
 };
 
-export function NoteSectionList({ sections, form, note }: NoteSectionListProps) {
+export function NoteSectionList({ sections, form, note, bodies }: NoteSectionListProps) {
   return (
     <View style={styles.list}>
       {sections.map((section) => (
@@ -21,6 +23,7 @@ export function NoteSectionList({ sections, form, note }: NoteSectionListProps) 
           section={section}
           expanded={form.expanded.has(section.id)}
           onToggle={form.toggleSection}>
+          {bodies?.[section.id]}
           {section.fields.map((field, index) => (
             <FormField key={index} field={field} note={note} form={form} />
           ))}

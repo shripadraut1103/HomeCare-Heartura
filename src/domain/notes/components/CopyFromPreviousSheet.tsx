@@ -8,14 +8,23 @@ import { SheetHeader } from '@/components/sheet/SheetHeader';
 import { ThemedText } from '@/components/ThemedText';
 import { Icon } from '@/components/ui/Icon';
 import { Radius, Shadows, Spacing } from '@/constants/Theme';
-import { usePreviousEvaluations } from '@/domain/notes/hooks/useNotes';
-import type { PreviousNote } from '@/domain/notes/interfaces/NoteInterfaces';
+import { usePreviousNotes } from '@/domain/notes/hooks/useNotes';
+import type { PreviousNote, PreviousNoteKind } from '@/domain/notes/interfaces/NoteInterfaces';
 import { useTheme } from '@/hooks/useTheme';
 import { getFirstName } from '@/utils/nameFormat';
 
 const ICON_TILE_SIZE = 44;
 
-export type CopyFromPreviousSheetData = { patientId: string; patientName: string };
+const NOUNS: Record<PreviousNoteKind, { one: string; many: string }> = {
+  evaluation: { one: 'evaluation', many: 'evaluations' },
+  carePlan: { one: 'care plan', many: 'care plans' },
+};
+
+export type CopyFromPreviousSheetData = {
+  kind: PreviousNoteKind;
+  patientId: string;
+  patientName: string;
+};
 
 type CopyFromPreviousSheetProps = {
   ref: Ref<BottomSheetModal<CopyFromPreviousSheetData>>;
@@ -31,6 +40,7 @@ export function CopyFromPreviousSheet({ ref, onPick }: CopyFromPreviousSheetProp
 }
 
 function PreviousList({
+  kind,
   patientId,
   patientName,
   onPick,
@@ -38,7 +48,8 @@ function PreviousList({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { dismiss } = useBottomSheetModal();
-  const notes = usePreviousEvaluations(patientId);
+  const notes = usePreviousNotes(kind, patientId);
+  const noun = NOUNS[kind];
   const chart = `${getFirstName(patientName)}’s chart`;
 
   const pick = (note: PreviousNote) => {
@@ -48,11 +59,11 @@ function PreviousList({
 
   return (
     <BottomSheetView style={{ paddingBottom: insets.bottom + Spacing.four }}>
-      <SheetHeader title="Copy from a previous evaluation" onClose={() => dismiss()} />
+      <SheetHeader title={`Copy from a previous ${noun.one}`} onClose={() => dismiss()} />
       <View style={styles.body}>
         {notes.length === 0 ? (
           <ThemedText themeColor="textSecondary" style={styles.empty}>
-            No earlier evaluations in {chart}.
+            No earlier {noun.many} in {chart}.
           </ThemedText>
         ) : (
           <View
@@ -61,7 +72,7 @@ function PreviousList({
               <Pressable
                 key={note.id}
                 accessibilityRole="button"
-                accessibilityHint="Copies its answers into this evaluation"
+                accessibilityHint={`Copies its answers into this ${noun.one}`}
                 onPress={() => pick(note)}
                 style={({ pressed }) => [
                   styles.row,

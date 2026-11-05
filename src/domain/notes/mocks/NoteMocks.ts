@@ -1,5 +1,7 @@
 import { MOCK_USER } from '@/domain/auth/mocks/AuthMocks';
 import type {
+  DailyNoteDefaults,
+  NoteComponent,
   NoteField,
   NoteSection,
   NoteTemplate,
@@ -60,6 +62,18 @@ export const MOCK_PENDING_NOTES: PendingNote[] = [
     label: 'Daily note',
     details: '09/01/2026 · 1:30 PM · PT',
     status: 'notSigned',
+    draft: {
+      discipline: 'PT',
+      visitAt: new Date(2026, 8, 1, 13, 30).toISOString(),
+      dateOfBirth: '07/21/1991',
+      savedAt: new Date(2026, 8, 1, 14, 40).toISOString(),
+      prefill: {
+        'dailyNote.diagnosis': 'F71 · Moderate intellectual disabilities',
+        'dailyNote.goal.brushTeeth.achieved': '30',
+        'dailyNote.goal.buttons.achieved': '3',
+        'dailyNote.goal.catchBall.achieved': '4',
+      },
+    },
   },
   {
     id: 'pn3',
@@ -70,6 +84,42 @@ export const MOCK_PENDING_NOTES: PendingNote[] = [
     label: 'Care plan',
     details: '09/01/2026 · 9:00 AM · PT · saved, not submitted',
     status: 'draft',
+    draft: {
+      discipline: 'PT',
+      visitAt: new Date(2026, 8, 1, 9, 0).toISOString(),
+      dateOfBirth: '09/30/1988',
+      savedAt: new Date(2026, 8, 1, 9, 52).toISOString(),
+      prefill: {
+        'carePlan.patientNumber': '021',
+        'carePlan.dateOfBirth': '09/30/1988',
+        'carePlan.evaluationDate': '09/01/2026 · Initial',
+        'carePlan.primaryDiagnosis': 'F71 · Moderate intellectual disabilities',
+        'carePlan.secondaryDiagnosis': 'R26.89 · Other abnormalities of gait',
+        'carePlan.timesFrom': '2',
+        'carePlan.per': 'week',
+        'carePlan.minutesFrom': '60',
+        'carePlan.estimatedDuration': '6',
+        'carePlan.durationUnit': 'month(s)',
+        'carePlan.dischargeDate': '02/28/2027',
+        'carePlan.modalities': ['Individual'],
+        'carePlan.goals': ['g1', 'g2', 'g3'],
+        'carePlan.goals.g1.areaOfConcern': 'Gross motor / Mobility',
+        'carePlan.goals.g1.goal': 'Walk 10 steps independently',
+        'carePlan.goals.g1.term': 'Short-term',
+        'carePlan.goals.g1.trackedAs': 'Trials',
+        'carePlan.goals.g1.targetTrials': '10',
+        'carePlan.goals.g2.areaOfConcern': 'Balance',
+        'carePlan.goals.g2.goal': 'Stand on one foot for 5 seconds',
+        'carePlan.goals.g2.term': 'Short-term',
+        'carePlan.goals.g2.trackedAs': 'Trials',
+        'carePlan.goals.g2.targetTrials': '5',
+        'carePlan.goals.g3.areaOfConcern': 'Gross motor / Mobility',
+        'carePlan.goals.g3.goal': 'Climb 12 stairs with one handrail, step over step',
+        'carePlan.goals.g3.term': 'Number of weeks',
+        'carePlan.goals.g3.weeks': '12',
+        'carePlan.goals.g3.trackedAs': 'Percentage',
+      },
+    },
   },
   {
     id: 'pn4',
@@ -1006,5 +1056,321 @@ export const MOCK_PREVIOUS_EVALUATIONS: PreviousNote[] = [
       'eval.strength': 'Trunk extensors 3+/5. Hips 4/5.',
       'eval.rom': 'Lumbar flexion limited by 50% with pain at end range.',
     },
+  },
+];
+
+export const MOCK_CARE_PLAN_TEMPLATES: NoteTemplate[] = [
+  { id: 'cp-pt', name: 'Care Plan: Physical Therapy', isDefault: true },
+  { id: 'cp-ot', name: 'Care Plan: Occupational Therapy' },
+  { id: 'cp-st', name: 'Care Plan: Speech Therapy' },
+];
+
+const YES_NO = ['Yes', 'No'];
+
+const DURATIONS = Array.from({ length: 12 }, (_, index) => String(index + 1));
+
+export const MOCK_CARE_PLAN_SECTIONS: NoteSection[] = [
+  {
+    id: 'patientDiagnosis',
+    title: 'Patient & diagnosis',
+    accent: 'primary',
+    fields: [
+      {
+        type: 'subsection',
+        title: 'Patient details',
+        fields: withDividers([
+          { type: 'readOnly', id: 'carePlan.patientNumber', label: 'Patient Number' },
+          { type: 'readOnly', id: 'carePlan.dateOfBirth', label: 'D.O.B. / Age' },
+          { type: 'readOnly', id: 'carePlan.evaluationDate', label: 'Eval. Date' },
+          { type: 'readOnly', id: 'carePlan.primaryDiagnosis', label: 'Primary Diagnosis' },
+          { type: 'readOnly', id: 'carePlan.secondaryDiagnosis', label: 'Secondary Diagnosis' },
+        ]),
+      },
+      {
+        type: 'subsection',
+        title: 'Outcome',
+        fields: [
+          {
+            type: 'readOnly',
+            id: 'carePlan.outcome',
+            label: 'Outcome',
+            value: 'Hidden for your role',
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'history',
+    title: 'History',
+    accent: 'accent',
+    fields: [
+      { type: 'shortText', id: 'carePlan.medications', label: 'Medications' },
+      { type: 'shortText', id: 'carePlan.otherTherapies', label: 'Other Therapies' },
+      { type: 'choice', id: 'carePlan.diet', label: 'Specialized Diet', options: YES_NO },
+      { type: 'shortText', id: 'carePlan.dietDetails', label: 'Specialized Diet — details' },
+    ],
+  },
+  {
+    id: 'assessment',
+    title: 'Assessment Summary',
+    accent: 'toneAmberFg',
+    fields: [
+      {
+        type: 'longText',
+        id: 'carePlan.currentLevel',
+        label: 'Current Level of Function',
+        required: true,
+      },
+      { type: 'longText', id: 'carePlan.progress', label: 'Progress to Date', required: true },
+      {
+        type: 'choice',
+        id: 'carePlan.rehabPotential',
+        label: 'Rehabilitation Potential',
+        options: ['Good', 'Fair', 'Guarded'],
+      },
+    ],
+  },
+  {
+    id: 'plan',
+    title: 'Plan of treatment',
+    accent: 'tonePurpleFg',
+    fields: [
+      {
+        type: 'subsection',
+        title: 'Frequency / Duration',
+        fields: [
+          { type: 'select', id: 'carePlan.timesFrom', label: 'Times, from', options: TIMES },
+          { type: 'select', id: 'carePlan.timesTo', label: 'Times, to', options: TIMES },
+          { type: 'select', id: 'carePlan.per', label: 'Per', options: ['day', 'week', 'month'] },
+          {
+            type: 'select',
+            id: 'carePlan.minutesFrom',
+            label: 'Minutes, from',
+            options: MINUTES,
+          },
+          { type: 'select', id: 'carePlan.minutesTo', label: 'Minutes, to', options: MINUTES },
+          {
+            type: 'select',
+            id: 'carePlan.estimatedDuration',
+            label: 'Estimated duration',
+            options: DURATIONS,
+          },
+          {
+            type: 'select',
+            id: 'carePlan.durationUnit',
+            label: 'Duration unit',
+            options: ['week(s)', 'month(s)'],
+          },
+          {
+            type: 'shortText',
+            id: 'carePlan.dischargeDate',
+            label: 'Estimated Date of Discharge',
+            placeholder: 'MM/DD/YYYY',
+            required: true,
+          },
+        ],
+      },
+      {
+        type: 'subsection',
+        title: 'Plan of Treatment/Modalities',
+        fields: [
+          {
+            type: 'multiSelect',
+            id: 'carePlan.modalities',
+            options: ['Individual', 'Group therapy utilizing'],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'other',
+    title: 'Other',
+    accent: 'toneRoseFg',
+    fields: [
+      { type: 'choice', id: 'carePlan.equipment', label: 'Equipment Required', options: YES_NO },
+      {
+        type: 'shortText',
+        id: 'carePlan.equipmentDetails',
+        label: 'Equipment Required — details',
+      },
+      {
+        type: 'longText',
+        id: 'carePlan.education',
+        label: 'Patient/ Caregiver Education',
+        required: true,
+      },
+      {
+        type: 'longText',
+        id: 'carePlan.coordination',
+        label: 'Coordination of Treatment with Other Services',
+        required: true,
+      },
+    ],
+  },
+  {
+    id: 'goals',
+    title: 'Goals',
+    accent: 'primary',
+    fields: [
+      {
+        type: 'repeat',
+        id: 'carePlan.goals',
+        fixed: true,
+        addLabel: 'Add goal',
+        removeLabel: 'Remove goal',
+        fields: [
+          { type: 'shortText', id: 'areaOfConcern', label: 'Area of concern' },
+          { type: 'longText', id: 'goal', label: 'Goal' },
+          {
+            type: 'select',
+            id: 'term',
+            label: 'Term',
+            options: ['Short-term', 'Long-term', 'Number of weeks', 'Number of visits'],
+          },
+          {
+            type: 'shortText',
+            id: 'weeks',
+            label: 'Weeks',
+            numeric: true,
+            showWhen: { id: 'term', value: 'Number of weeks' },
+          },
+          {
+            type: 'select',
+            id: 'trackedAs',
+            label: 'Tracked as',
+            options: ['Percentage', 'Trials', 'Duration'],
+          },
+          {
+            type: 'shortText',
+            id: 'targetTrials',
+            label: 'Target trials',
+            numeric: true,
+            showWhen: { id: 'trackedAs', value: 'Trials' },
+          },
+        ],
+      },
+    ],
+  },
+];
+
+export const MOCK_CARE_PLAN_COMPONENTS: NoteComponent[] = [
+  {
+    id: 'treatmentNarrative',
+    title: 'Treatment Plan Narrative',
+    sectionId: 'plan',
+    fields: [
+      {
+        type: 'longText',
+        id: 'carePlan.treatmentNarrative',
+        label: 'Treatment Plan Narrative',
+      },
+    ],
+  },
+];
+
+export const MOCK_PREVIOUS_CARE_PLANS: PreviousNote[] = [
+  {
+    id: 'pc1',
+    patientId: 'p-luca-bertrand',
+    title: 'Care plan',
+    date: '06/02/2026',
+    status: 'Closed',
+    answers: {
+      'carePlan.medications': 'Sertraline 50 mg daily',
+      'carePlan.otherTherapies': 'Speech therapy, weekly',
+      'carePlan.diet': 'No',
+      'carePlan.rehabPotential': 'Good',
+      'carePlan.equipment': 'Yes',
+      'carePlan.equipmentDetails': 'Rollator with seat',
+      'carePlan.education': 'Group home staff trained on safe transfers and rollator use.',
+      'carePlan.coordination': 'Monthly update to the support coordinator and the house manager.',
+    },
+  },
+];
+
+export const MOCK_DAILY_NOTE_TEMPLATES: NoteTemplate[] = [
+  { id: 'dn-default', name: 'Daily Note', isDefault: true },
+  { id: 'dn-pt', name: 'Daily Note: Physical Therapy' },
+];
+
+export const MOCK_DAILY_NOTE_DEFAULTS: DailyNoteDefaults = {
+  provider: MOCK_USER.name,
+  durationMinutes: 60,
+  serviceLocations: [
+    'Private home · 12 · EVV required',
+    'Group home · 21 · EVV required',
+    'Community · 99',
+  ],
+  procedureCodes: ['S8990 HI', '97110', '97112', '97116', '97530', '97535'],
+  authorization: 'PA 26041988',
+  unitsWeekOf: '08/30/2026',
+  goals: [
+    { id: 'brushTeeth', text: 'Brush teeth with verbal cues only', trackedAs: 'Percentage' },
+    { id: 'buttons', text: 'Fasten 5 buttons on a shirt', trackedAs: 'Trials' },
+    { id: 'catchBall', text: 'Catch a ball from 5 feet', trackedAs: 'Trials' },
+  ],
+};
+
+export const MOCK_DAILY_NOTE_SECTIONS: NoteSection[] = [
+  { id: 'visit', title: 'Visit', accent: 'accent', fields: [] },
+  { id: 'billing', title: 'Billing', accent: 'toneAmberFg', fields: [] },
+  { id: 'summary', title: 'Daily Note', accent: 'tonePurpleFg', fields: [] },
+  {
+    id: 'precautions',
+    title: 'Precautions/Contraindication',
+    accent: 'toneRoseFg',
+    fields: [
+      {
+        type: 'longText',
+        id: 'dailyNote.precautions',
+        label: 'Precautions / contraindications',
+      },
+    ],
+  },
+  {
+    id: 'soap',
+    title: 'Session note (SOAP)',
+    accent: 'primary',
+    fields: [
+      { type: 'longText', id: 'dailyNote.subjective', label: 'Subjective' },
+      { type: 'longText', id: 'dailyNote.objective', label: 'Objective' },
+      { type: 'longText', id: 'dailyNote.assessment', label: 'Assessment' },
+      { type: 'longText', id: 'dailyNote.plan', label: 'Plan' },
+    ],
+  },
+];
+
+export const MOCK_DAILY_NOTE_COMPONENTS: NoteComponent[] = [
+  {
+    id: 'currentDiet',
+    title: 'Current diet',
+    sectionId: 'summary',
+    fields: [{ type: 'shortText', id: 'dailyNote.currentDiet', label: 'Current diet' }],
+  },
+  {
+    id: 'ambulation',
+    title: 'Ambulation',
+    sectionId: 'summary',
+    fields: [{ type: 'longText', id: 'dailyNote.ambulation', label: 'Ambulation' }],
+  },
+  {
+    id: 'transfers',
+    title: 'Transfers',
+    sectionId: 'summary',
+    fields: [{ type: 'longText', id: 'dailyNote.transfers', label: 'Transfers' }],
+  },
+  {
+    id: 'homeProgram',
+    title: 'Home program & caregiver training',
+    sectionId: 'summary',
+    fields: [
+      {
+        type: 'longText',
+        id: 'dailyNote.homeProgram',
+        label: 'Home program & caregiver training',
+      },
+    ],
   },
 ];

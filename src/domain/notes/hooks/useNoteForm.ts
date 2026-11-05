@@ -75,6 +75,9 @@ export function useNoteForm(sections: readonly NoteSection[], initialValues: Not
       return next;
     });
 
+  const expandSections = (sectionIds: readonly string[]) =>
+    setExpanded((current) => new Set([...current, ...sectionIds]));
+
   const validate = () => {
     if (missing.length === 0) return true;
     setShowErrors(true);
@@ -94,6 +97,7 @@ export function useNoteForm(sections: readonly NoteSection[], initialValues: Not
     countOverwrites,
     toggleOption,
     toggleSection,
+    expandSections,
     validate,
     errorFor,
   };
