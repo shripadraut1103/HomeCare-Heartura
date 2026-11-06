@@ -11,6 +11,7 @@ type ChipGroupProps = {
   onToggle: (option: string) => void;
   dotColors?: Partial<Record<string, ThemeColor>>;
   single?: boolean;
+  solid?: boolean;
 };
 
 export function ChipGroup({
@@ -19,6 +20,7 @@ export function ChipGroup({
   onToggle,
   dotColors,
   single = false,
+  solid = false,
 }: ChipGroupProps) {
   const theme = useTheme();
 
@@ -39,13 +41,17 @@ export function ChipGroup({
             style={({ pressed }) => [
               styles.chip,
               {
-                backgroundColor: isSelected ? theme.primaryMuted : theme.background,
+                backgroundColor: isSelected
+                  ? theme[solid ? 'primary' : 'primaryMuted']
+                  : theme.background,
                 borderColor: isSelected ? theme.primary : theme.border,
               },
               pressed && styles.pressed,
             ]}>
             {dotColor ? <View style={[styles.dot, { backgroundColor: theme[dotColor] }]} /> : null}
-            <ThemedText themeColor={isSelected ? 'primary' : 'textSecondary'} style={styles.label}>
+            <ThemedText
+              themeColor={isSelected ? (solid ? 'onPrimary' : 'primary') : 'textSecondary'}
+              style={styles.label}>
               {option}
             </ThemedText>
           </Pressable>

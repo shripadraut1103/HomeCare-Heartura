@@ -32,11 +32,11 @@ const defaultEndDate = (date: Date) => {
   return new Date(next.getFullYear(), next.getMonth() + 1, 0);
 };
 
-const defaults = (date: Date): AppointmentFormValues => ({
-  patientId: null,
-  location: null,
+const defaults = (date: Date, patient: Patient | undefined): AppointmentFormValues => ({
+  patientId: patient?.id ?? null,
+  location: patient?.serviceLocation ?? null,
   service: null,
-  payer: null,
+  payer: patient?.payers.length === 1 ? patient.payers[0] : null,
   date,
   startTime: new Date(date.getFullYear(), date.getMonth(), date.getDate(), DEFAULT_START_HOUR),
   duration: '',
@@ -50,7 +50,7 @@ const defaults = (date: Date): AppointmentFormValues => ({
   notes: '',
 });
 
-export function useAppointmentForm(initialDate: Date | undefined) {
+export function useAppointmentForm(initialDate: Date | undefined, initialPatientId?: string) {
   const dispatch = useAppDispatch();
   const patients = usePatients();
   const provider = useProfile();
@@ -60,7 +60,10 @@ export function useAppointmentForm(initialDate: Date | undefined) {
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentSchema),
-    defaultValues: defaults(firstDate),
+    defaultValues: defaults(
+      firstDate,
+      patients.find((item) => item.id === initialPatientId)
+    ),
   });
   const values = useWatch({ control: form.control }) as AppointmentFormValues;
   const { leave } = useUnsavedChangesGuard(

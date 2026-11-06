@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View, type ListRenderItem } from 'react-native';
+import { StyleSheet, View, type ListRenderItem } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,10 +12,10 @@ import {
   FLOATING_ACTION_BUTTON_SIZE,
   FloatingActionButton,
 } from '@/components/ui/FloatingActionButton';
-import { Icon } from '@/components/ui/Icon';
+import { SearchField } from '@/components/ui/SearchField';
 import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl';
 import { TabPanel } from '@/components/ui/TabPanel';
-import { Radius, Shadows, Spacing } from '@/constants/Theme';
+import { Radius, Spacing } from '@/constants/Theme';
 import { ConversationRow } from '@/domain/communications/components/ConversationRow';
 import { filterPreviews, previewText } from '@/domain/communications/conversationList';
 import {
@@ -94,40 +94,7 @@ export default function CommunicationsScreen() {
         </View>
 
         <View style={styles.controls}>
-          <View
-            style={[
-              styles.search,
-              { backgroundColor: theme.background, borderColor: theme.border },
-            ]}>
-            <Icon
-              name={{ ios: 'magnifyingglass', android: 'search' }}
-              size={20}
-              color={theme.textSecondary}
-            />
-            <TextInput
-              accessibilityLabel="Search messages"
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search messages"
-              placeholderTextColor={theme.textSecondary}
-              autoCorrect={false}
-              returnKeyType="search"
-              style={[styles.searchInput, { color: theme.text }]}
-            />
-            {query ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Clear search"
-                hitSlop={8}
-                onPress={() => setQuery('')}>
-                <Icon
-                  name={{ ios: 'xmark.circle.fill', android: 'cancel' }}
-                  size={18}
-                  color={theme.textSecondary}
-                />
-              </Pressable>
-            ) : null}
-          </View>
+          <SearchField value={query} onChangeText={setQuery} placeholder="Search messages" />
           <SegmentedControl segments={TABS} value={tab} onChange={setTab} />
         </View>
 
@@ -197,21 +164,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.three,
     paddingBottom: Spacing.three,
-  },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two + Spacing.half,
-    minHeight: 52,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Radius.medium,
-    borderWidth: 1,
-    ...Shadows.card,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 17,
-    paddingVertical: Spacing.two,
   },
   content: {
     width: '100%',

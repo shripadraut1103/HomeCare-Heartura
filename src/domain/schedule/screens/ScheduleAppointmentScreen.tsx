@@ -23,8 +23,8 @@ import { useTheme } from '@/hooks/useTheme';
 import { formatNumericDate, parseIsoDate } from '@/utils/dateFormat';
 
 export default function ScheduleAppointmentScreen() {
-  const { date } = useLocalSearchParams<{ date?: string }>();
-  const form = useAppointmentForm(date ? parseIsoDate(date) : undefined);
+  const { date, patientId } = useLocalSearchParams<{ date?: string; patientId?: string }>();
+  const form = useAppointmentForm(date ? parseIsoDate(date) : undefined, patientId);
   const notesRef = useRef<ComponentRef<typeof TextInput>>(null);
   const { patient } = form;
 

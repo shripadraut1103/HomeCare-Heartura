@@ -69,8 +69,8 @@ export function useAttachmentPicker() {
     return result.canceled ? [] : result.assets.map(fromImage);
   };
 
-  const pickDocuments = async (): Promise<Attachment[]> => {
-    const result = await DocumentPicker.getDocumentAsync({ type: '*/*', multiple: true });
+  const pickDocuments = async (types: string | string[] = '*/*'): Promise<Attachment[]> => {
+    const result = await DocumentPicker.getDocumentAsync({ type: types, multiple: true });
     return result.canceled ? [] : result.assets.map(fromDocument);
   };
 

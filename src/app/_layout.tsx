@@ -34,9 +34,13 @@ function RootNavigator() {
         <Stack.Screen name="care-plan/[id]" options={PUSHED_SCREEN} />
         <Stack.Screen name="daily-note/[id]" options={PUSHED_SCREEN} />
         <Stack.Screen name="conversation/[id]" options={PUSHED_SCREEN} />
+        <Stack.Screen name="patient/[id]" options={PUSHED_SCREEN} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="edit-availability" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="schedule-appointment" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="create-visit" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="add-history" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="upload-document" options={{ presentation: 'fullScreenModal' }} />
       </Stack.Protected>
       <Stack.Protected guard={!isLoggedIn}>
         <Stack.Screen name="(auth)" />

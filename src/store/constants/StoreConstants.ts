@@ -15,3 +15,5 @@ export const BLOCK_DAYS_REDUCER = 'blockDays';
 export const AVAILABILITY_REDUCER = 'availability';
 
 export const COMMUNICATIONS_REDUCER = 'communications';
+
+export const PATIENTS_REDUCER = 'patients';

@@ -15,23 +15,27 @@ export function useTabBarSpace() {
   return TAB_BAR_HEIGHT + BAR_GAP + insets.bottom + Spacing.three;
 }
 
-export default function AppTabs() {
+export function useFloatingTabBarStyle() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  return [
+    styles.bar,
+    {
+      bottom: insets.bottom + BAR_GAP,
+      backgroundColor: theme.background,
+      borderColor: theme.border,
+    },
+  ];
+}
+
+export default function AppTabs() {
+  const barStyle = useFloatingTabBarStyle();
   const unreadMessages = useUnreadMessageCount();
 
   return (
     <Tabs style={styles.container}>
       <TabSlot />
-      <TabList
-        style={[
-          styles.bar,
-          {
-            bottom: insets.bottom + BAR_GAP,
-            backgroundColor: theme.background,
-            borderColor: theme.border,
-          },
-        ]}>
+      <TabList style={barStyle}>
         <TabTrigger name="index" href="/(tabs)/(home)" asChild>
           <TabBarButton label="Home" icon={{ ios: 'square.grid.2x2', android: 'grid_view' }} />
         </TabTrigger>

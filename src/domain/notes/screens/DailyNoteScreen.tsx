@@ -54,6 +54,7 @@ import { withComponents } from '@/domain/notes/noteComponents';
 import { INTAKE_STEP, INTAKE_STEPS } from '@/domain/notes/noteRules';
 import { IspSheet, type IspSheetData } from '@/domain/patients/components/IspSheet';
 import { usePatient } from '@/domain/patients/hooks/usePatients';
+import { addPatientIncident } from '@/domain/patients/store/PatientsReducer';
 import { useTheme } from '@/hooks/useTheme';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
@@ -182,6 +183,12 @@ export default function DailyNoteScreen() {
   const saveIncident = (incident: IncidentReport) => {
     // TODO: send the incident to the incidents API so the office is notified.
     setIncidents((current) => [...current, incident]);
+    dispatch(
+      addPatientIncident({
+        patientId: note.patientId,
+        incident: { ...incident, reportedBy: defaults.provider },
+      })
+    );
     form.expandSections([INCIDENTS_SECTION.id]);
     haptics.success();
     dispatch(setToastMessage({ message: 'Incident saved to the note' }));
