@@ -25,7 +25,6 @@ import {
   MOCK_EVALUATION_TEMPLATES,
   MOCK_PROGRESS_NOTE_SECTIONS,
   MOCK_PROGRESS_NOTE_TEMPLATES,
-  MOCK_PROGRESS_NOTES_DUE,
 } from '@/domain/notes/mocks/NoteMocks';
 import { useAppSelector } from '@/store/hooks';
 
@@ -39,10 +38,8 @@ export function usePendingNote(noteId: string | undefined): PendingNote | undefi
   );
 }
 
-/** TEMPORARY: mock data; switch to the notes service once the API exists. */
 export function useProgressNotesDue(): ProgressNoteDue[] {
-  const [notes] = useState(MOCK_PROGRESS_NOTES_DUE);
-  return notes;
+  return useAppSelector((state) => state.notes.progressDue);
 }
 
 export function useProgressNoteDue(noteId: string | undefined): ProgressNoteDue | undefined {

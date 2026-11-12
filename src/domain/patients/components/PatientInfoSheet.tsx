@@ -13,14 +13,11 @@ import { ThemedText } from '@/components/ThemedText';
 import { Button } from '@/components/ui/Button';
 import { DetailRow } from '@/components/ui/DetailRow';
 import { Pill } from '@/components/ui/Pill';
-import { Spacing, type ThemeColor } from '@/constants/Theme';
+import { Spacing } from '@/constants/Theme';
+import { SEVERITY } from '@/domain/patients/clinicalStyles';
 import { PatientStatusPill } from '@/domain/patients/components/PatientStatusPill';
 import { usePatient, usePatientChart } from '@/domain/patients/hooks/usePatients';
-import type {
-  AllergySeverity,
-  Patient,
-  PatientChart,
-} from '@/domain/patients/interfaces/PatientInterfaces';
+import type { Patient, PatientChart } from '@/domain/patients/interfaces/PatientInterfaces';
 import { ageFrom, patientDob } from '@/domain/patients/patientList';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -38,15 +35,6 @@ const TITLES: Record<PatientInfoKind, string> = {
   allergies: 'Allergies',
   insurance: 'Insurance',
   notes: 'Notes',
-};
-
-export const SEVERITY: Record<
-  AllergySeverity,
-  { label: string; color: ThemeColor; background: ThemeColor }
-> = {
-  mild: { label: 'Mild', color: 'success', background: 'successMuted' },
-  moderate: { label: 'Moderate', color: 'toneAmberFg', background: 'toneAmberBg' },
-  severe: { label: 'Severe', color: 'toneRedFg', background: 'toneRedBg' },
 };
 
 export function PatientInfoSheet({ ref }: { ref: Ref<BottomSheetModal<PatientInfoSheetData>> }) {

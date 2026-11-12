@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState, type ComponentRef } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -22,14 +22,17 @@ type SegmentedControlProps<T extends string> = {
   segments: readonly Segment<T>[];
   value: T;
   onChange: (value: T) => void;
+  scrollable?: boolean;
 };
 
 export function SegmentedControl<T extends string>({
   segments,
   value,
   onChange,
+  scrollable = false,
 }: SegmentedControlProps<T>) {
   const theme = useTheme();
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const [layouts, setLayouts] = useState<Partial<Record<T, SegmentLayout>>>({});
   const target = layouts[value];
   const x = useSharedValue(0);
@@ -44,6 +47,7 @@ export function SegmentedControl<T extends string>({
       x.value = withSpring(target.x, INDICATOR_SPRING);
       width.value = withSpring(target.width, INDICATOR_SPRING);
     }
+    scrollRef.current?.scrollTo({ x: Math.max(0, target.x - SCROLL_INSET), animated: true });
   }, [target, x, width]);
 
   const indicatorStyle = useAnimatedStyle(() => ({
@@ -51,7 +55,7 @@ export function SegmentedControl<T extends string>({
     transform: [{ translateX: x.value }],
   }));
 
-  return (
+  const track = (
     <View
       accessibilityRole="tablist"
       style={[
@@ -92,6 +96,7 @@ export function SegmentedControl<T extends string>({
             }}
             style={[
               styles.segment,
+              scrollable && styles.scrollSegment,
               selected &&
                 !target && [
                   styles.selected,
@@ -101,7 +106,7 @@ export function SegmentedControl<T extends string>({
             <ThemedText
               themeColor={selected ? 'primary' : 'textSecondary'}
               numberOfLines={1}
-              adjustsFontSizeToFit
+              adjustsFontSizeToFit={!scrollable}
               minimumFontScale={0.8}
               style={styles.label}>
               {segment.label}
@@ -114,9 +119,31 @@ export function SegmentedControl<T extends string>({
       })}
     </View>
   );
+
+  return scrollable ? (
+    <ScrollView
+      ref={scrollRef}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}>
+      {track}
+    </ScrollView>
+  ) : (
+    track
+  );
 }
 
+const SCROLL_INSET = Spacing.five;
+
 const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+  },
+  scrollSegment: {
+    flexGrow: 0,
+    flexShrink: 0,
+    paddingHorizontal: Spacing.three,
+  },
   track: {
     flexDirection: 'row',
     gap: Spacing.one,
@@ -147,7 +174,7 @@ const styles = StyleSheet.create({
     left: 0,
     borderRadius: Radius.small,
     borderWidth: StyleSheet.hairlineWidth,
-    ...Shadows.card,
+    ...(Platform.OS === 'ios' ? Shadows.card : null),
   },
   label: {
     flexShrink: 1,

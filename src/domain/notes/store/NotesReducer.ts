@@ -1,21 +1,32 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-import type { PendingNote } from '@/domain/notes/interfaces/NoteInterfaces';
-import { MOCK_PENDING_NOTES } from '@/domain/notes/mocks/NoteMocks';
+import type { PendingNote, ProgressNoteDue } from '@/domain/notes/interfaces/NoteInterfaces';
+import { MOCK_PENDING_NOTES, MOCK_PROGRESS_NOTES_DUE } from '@/domain/notes/mocks/NoteMocks';
 import { NOTES_REDUCER } from '@/store/constants/StoreConstants';
 
 export interface NotesState {
   pending: PendingNote[];
+  progressDue: ProgressNoteDue[];
 }
 
 const initialState: NotesState = {
   pending: MOCK_PENDING_NOTES,
+  progressDue: MOCK_PROGRESS_NOTES_DUE,
 };
 
 const NotesReducer = createSlice({
   name: NOTES_REDUCER,
   initialState,
   reducers: {
+    // TEMPORARY: starts a note locally; create it through the notes API once it exists.
+    addPendingNote: (state, action: PayloadAction<PendingNote>) => ({
+      ...state,
+      pending: [action.payload, ...state.pending],
+    }),
+    addProgressNoteDue: (state, action: PayloadAction<ProgressNoteDue>) => ({
+      ...state,
+      progressDue: [action.payload, ...state.progressDue],
+    }),
     removePendingNote: (state, action: PayloadAction<{ noteId: string }>) => {
       state.pending = state.pending.filter((note) => note.id !== action.payload.noteId);
     },
@@ -31,4 +42,5 @@ const NotesReducer = createSlice({
 });
 
 export default NotesReducer.reducer;
-export const { removePendingNote, restorePendingNote } = NotesReducer.actions;
+export const { addPendingNote, addProgressNoteDue, removePendingNote, restorePendingNote } =
+  NotesReducer.actions;

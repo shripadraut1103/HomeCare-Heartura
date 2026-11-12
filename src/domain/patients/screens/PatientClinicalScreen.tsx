@@ -3,19 +3,16 @@ import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useTabBarSpace } from '@/components/AppTabs';
-import { ThemedText } from '@/components/ThemedText';
 import { ChipGroup } from '@/components/ui/ChipGroup';
 import {
   FLOATING_ACTION_BUTTON_SIZE,
   FloatingActionButton,
 } from '@/components/ui/FloatingActionButton';
-import { Pill } from '@/components/ui/Pill';
 import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl';
 import { TabPanel } from '@/components/ui/TabPanel';
 import { Spacing } from '@/constants/Theme';
+import { AllergyList, DiagnosisList } from '@/domain/patients/components/ClinicalLists';
 import { HistoryList } from '@/domain/patients/components/HistoryList';
-import { PatientCardShell } from '@/domain/patients/components/PatientCardShell';
-import { SEVERITY } from '@/domain/patients/components/PatientInfoSheet';
 import { useRoutePatient } from '@/domain/patients/hooks/usePatients';
 import { HISTORY_CATEGORIES, HISTORY_LABELS } from '@/domain/patients/patientHistory';
 import type { HistoryCategory } from '@/domain/patients/interfaces/PatientInterfaces';
@@ -51,6 +48,23 @@ export default function PatientClinicalScreen() {
   if (!patient || !chart) return null;
 
   const history = chart.history.filter((entry) => entry.category === category);
+  const params = { patientId: patient.id };
+  const addAction =
+    section === 'diagnosis'
+      ? {
+          label: 'Add diagnosis',
+          onPress: () => router.push({ pathname: '/add-diagnosis', params }),
+        }
+      : section === 'allergies'
+        ? {
+            label: 'Add allergy',
+            onPress: () => router.push({ pathname: '/add-allergy', params }),
+          }
+        : {
+            label: `Add ${HISTORY_LABELS[category].toLowerCase()} history`,
+            onPress: () =>
+              router.push({ pathname: '/add-history', params: { ...params, category } }),
+          };
 
   return (
     <View style={styles.container}>
@@ -65,61 +79,9 @@ export default function PatientClinicalScreen() {
           ]}
           showsVerticalScrollIndicator={false}>
           {section === 'diagnosis' ? (
-            <PatientCardShell>
-              {chart.diagnoses.length > 0 ? (
-                chart.diagnoses.map((diagnosis, index) => (
-                  <View
-                    key={diagnosis.code}
-                    style={[
-                      styles.item,
-                      index > 0 && [styles.divider, { borderTopColor: theme.border }],
-                    ]}>
-                    <View style={styles.flex}>
-                      <ThemedText style={styles.title}>
-                        {diagnosis.code} · {diagnosis.description}
-                      </ThemedText>
-                      <ThemedText themeColor="textSecondary" style={styles.meta}>
-                        {diagnosis.rank === 'primary' ? 'Primary diagnosis' : 'Secondary diagnosis'}
-                      </ThemedText>
-                    </View>
-                    <Pill label={diagnosis.rank === 'primary' ? 'Primary' : 'Secondary'} dot />
-                  </View>
-                ))
-              ) : (
-                <Empty text="No diagnosis on file." />
-              )}
-            </PatientCardShell>
+            <DiagnosisList diagnoses={chart.diagnoses} />
           ) : section === 'allergies' ? (
-            <PatientCardShell>
-              {chart.allergies.length > 0 ? (
-                chart.allergies.map((allergy, index) => {
-                  const severity = SEVERITY[allergy.severity];
-                  return (
-                    <View
-                      key={allergy.name}
-                      style={[
-                        styles.item,
-                        index > 0 && [styles.divider, { borderTopColor: theme.border }],
-                      ]}>
-                      <View style={styles.flex}>
-                        <ThemedText style={styles.title}>{allergy.name}</ThemedText>
-                        <ThemedText themeColor="textSecondary" style={styles.meta}>
-                          {allergy.kind} · {allergy.reaction}
-                        </ThemedText>
-                      </View>
-                      <Pill
-                        label={severity.label}
-                        dot
-                        color={severity.color}
-                        backgroundColor={severity.background}
-                      />
-                    </View>
-                  );
-                })
-              ) : (
-                <Empty text="No known allergies." />
-              )}
-            </PatientCardShell>
+            <AllergyList allergies={chart.allergies} />
           ) : (
             <>
               <ChipGroup
@@ -141,26 +103,15 @@ export default function PatientClinicalScreen() {
           )}
         </ScrollView>
       </TabPanel>
-      {section === 'history' ? (
-        <View style={[styles.fab, { bottom: tabBarSpace - Spacing.two }]}>
-          <FloatingActionButton
-            label={`Add ${HISTORY_LABELS[category].toLowerCase()} history`}
-            accessibilityLabel={`Add ${HISTORY_LABELS[category].toLowerCase()} history`}
-            onPress={() =>
-              router.push({ pathname: '/add-history', params: { patientId: patient.id, category } })
-            }
-          />
-        </View>
-      ) : null}
+      <View style={[styles.fab, { bottom: tabBarSpace - Spacing.two }]}>
+        <FloatingActionButton
+          key={addAction.label}
+          label={addAction.label}
+          accessibilityLabel={addAction.label}
+          onPress={addAction.onPress}
+        />
+      </View>
     </View>
-  );
-}
-
-function Empty({ text }: { text: string }) {
-  return (
-    <ThemedText themeColor="textSecondary" style={styles.empty}>
-      {text}
-    </ThemedText>
   );
 }
 
@@ -179,33 +130,6 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.two,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-  },
-  divider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  flex: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 19,
-    lineHeight: 25,
-    fontWeight: 600,
-  },
-  meta: {
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: 400,
-  },
-  empty: {
-    textAlign: 'center',
-    paddingVertical: Spacing.four,
   },
   fab: {
     position: 'absolute',

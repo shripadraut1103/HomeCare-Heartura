@@ -46,19 +46,34 @@ export interface PatientService {
   team: readonly string[];
 }
 
+export type DiagnosisType = 'chronic' | 'acute';
+
+export type DiagnosisStatus = 'active' | 'monitoring' | 'resolved';
+
 export interface Diagnosis {
+  id: string;
   code: string;
   description: string;
   rank: 'primary' | 'secondary';
+  type: DiagnosisType;
+  status: DiagnosisStatus;
+  onset?: string;
+  notedBy?: string;
 }
 
 export type AllergySeverity = 'mild' | 'moderate' | 'severe';
 
+export type AllergyStatus = 'active' | 'inactive';
+
 export interface Allergy {
+  id: string;
   name: string;
   kind: string;
   reaction: string;
   severity: AllergySeverity;
+  status: AllergyStatus;
+  onset?: string;
+  recordedBy?: string;
 }
 
 export interface GroupHome {
@@ -110,6 +125,40 @@ export interface HistoryEntry {
   note?: string;
 }
 
+export type RecordKind = 'daily' | 'evaluation' | 'carePlan' | 'progress' | 'discharge';
+
+export type RecordDiscipline = 'OT' | 'PT' | 'Speech';
+
+export type RecordStatus = 'signed' | 'pending' | 'cancelled' | 'due' | 'upcoming';
+
+export interface ChartRecord {
+  id: string;
+  kind: RecordKind;
+  discipline: RecordDiscipline;
+  title: string;
+  date: string;
+  time?: string;
+  therapist: string;
+  assistant?: string;
+  status: RecordStatus;
+  signedAt?: string;
+  visitType?: string;
+  minutes?: number;
+  statusNote?: string;
+  carePlanId?: string;
+  planStart?: string;
+  planEnd?: string;
+  periodStart?: string;
+  periodEnd?: string;
+  visitNumber?: number;
+  visitsPerNote?: number;
+  createdOn?: string;
+  nextVisit?: string;
+  reason?: string;
+  restart?: boolean;
+  values?: Record<string, string | readonly string[]>;
+}
+
 export interface PatientIncident {
   id: string;
   occurredAt: string;
@@ -136,6 +185,7 @@ export interface PatientChart {
   documents: readonly PatientDocument[];
   history: readonly HistoryEntry[];
   incidents: readonly PatientIncident[];
+  records: readonly ChartRecord[];
 }
 
 export interface PatientsState {

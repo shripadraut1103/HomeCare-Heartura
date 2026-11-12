@@ -26,6 +26,7 @@ type ExpandableRowProps = {
   expanded: boolean;
   onToggle: () => void;
   isFirst?: boolean;
+  linkTitle?: boolean;
   children?: ReactNode;
 };
 
@@ -37,6 +38,7 @@ export function ExpandableRow({
   expanded,
   onToggle,
   isFirst = false,
+  linkTitle = false,
   children,
 }: ExpandableRowProps) {
   const theme = useTheme();
@@ -58,9 +60,13 @@ export function ExpandableRow({
         }}
         style={({ pressed }) => [styles.header, pressed && styles.pressed]}>
         <View style={styles.text}>
-          <ThemedText style={styles.title}>{title}</ThemedText>
+          <ThemedText
+            themeColor={linkTitle ? 'primary' : undefined}
+            style={[styles.title, linkTitle && styles.link]}>
+            {title}
+          </ThemedText>
           {subtitle ? (
-            <ThemedText themeColor="textSecondary" style={styles.subtitle}>
+            <ThemedText themeColor="textSecondary" numberOfLines={1} style={styles.subtitle}>
               {subtitle}
             </ThemedText>
           ) : null}
@@ -125,6 +131,10 @@ const styles = StyleSheet.create({
     fontSize: 19,
     lineHeight: 25,
     fontWeight: 600,
+  },
+  link: {
+    alignSelf: 'flex-start',
+    textDecorationLine: 'underline',
   },
   subtitle: {
     fontSize: 16,

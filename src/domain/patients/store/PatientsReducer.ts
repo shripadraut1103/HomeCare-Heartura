@@ -1,6 +1,8 @@
 import { createSlice, nanoid, type PayloadAction } from '@reduxjs/toolkit';
 
 import type {
+  Allergy,
+  Diagnosis,
   HistoryEntry,
   PatientDocument,
   PatientIncident,
@@ -34,6 +36,31 @@ const PatientsReducer = createSlice({
         payload: { ...payload, entry: { ...payload.entry, id: nanoid() } },
       }),
     },
+    addDiagnosis: {
+      reducer: (state, action: PayloadAction<{ patientId: string; diagnosis: Diagnosis }>) => {
+        const chart = state.charts[action.payload.patientId];
+        if (!chart) return;
+        const hasPrimary = chart.diagnoses.some((item) => item.rank === 'primary');
+        chart.diagnoses.push({
+          ...action.payload.diagnosis,
+          rank: hasPrimary ? 'secondary' : 'primary',
+        });
+      },
+      prepare: (payload: { patientId: string; diagnosis: Omit<Diagnosis, 'id' | 'rank'> }) => ({
+        payload: {
+          ...payload,
+          diagnosis: { ...payload.diagnosis, id: nanoid(), rank: 'secondary' as const },
+        },
+      }),
+    },
+    addAllergy: {
+      reducer: (state, action: PayloadAction<{ patientId: string; allergy: Allergy }>) => {
+        state.charts[action.payload.patientId]?.allergies.push(action.payload.allergy);
+      },
+      prepare: (payload: { patientId: string; allergy: Omit<Allergy, 'id'> }) => ({
+        payload: { ...payload, allergy: { ...payload.allergy, id: nanoid() } },
+      }),
+    },
     addPatientIncident: {
       reducer: (state, action: PayloadAction<{ patientId: string; incident: PatientIncident }>) => {
         state.charts[action.payload.patientId]?.incidents.unshift(action.payload.incident);
@@ -44,4 +71,5 @@ const PatientsReducer = createSlice({
 });
 
 export default PatientsReducer.reducer;
-export const { addPatientDocument, addHistoryEntry, addPatientIncident } = PatientsReducer.actions;
+export const { addPatientDocument, addHistoryEntry, addDiagnosis, addAllergy, addPatientIncident } =
+  PatientsReducer.actions;

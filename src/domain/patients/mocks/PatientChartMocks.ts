@@ -4,6 +4,9 @@ import type {
   PatientService,
 } from '@/domain/patients/interfaces/PatientInterfaces';
 import { MOCK_PATIENTS } from '@/domain/patients/mocks/PatientMocks';
+import { AALIYAH_RECORDS } from '@/domain/patients/mocks/PatientRecordMocks';
+
+const BURKE = 'Dr. Melissa Burke';
 
 /**
  * TEMPORARY: patient charts until the API exists.
@@ -57,6 +60,7 @@ const defaultChart = (patient: Patient): PatientChart => {
     documents: [],
     history: [],
     incidents: [],
+    records: [],
   };
 };
 
@@ -77,13 +81,83 @@ const DETAILS: Record<string, Partial<PatientChart>> = {
     phones: ['(908) 262-2132', '(908) 642-6506'],
     email: 'reagand@alternativesinc.org',
     allergies: [
-      { name: 'Penicillin', kind: 'Medication', reaction: 'Hives', severity: 'moderate' },
+      {
+        id: 'ak-al1',
+        name: 'Penicillin',
+        kind: 'Medication',
+        reaction: 'Hives',
+        severity: 'moderate',
+        status: 'active',
+        onset: '03/12/1996',
+        recordedBy: BURKE,
+      },
+      {
+        id: 'ak-al2',
+        name: 'Seasonal pollen',
+        kind: 'Environmental',
+        reaction: 'Sneezing, itchy eyes',
+        severity: 'mild',
+        status: 'active',
+        onset: '04/15/2010',
+        recordedBy: BURKE,
+      },
     ],
     insurance: {
       primary: 'NJ Medicaid · fee-for-service',
       secondary: 'Private pay · Aaliyah Kaplan (self)',
     },
-    diagnoses: [{ code: 'F70', description: 'Mild intellectual disabilities', rank: 'primary' }],
+    diagnoses: [
+      {
+        id: 'ak-dx1',
+        code: 'F70',
+        description: 'Mild intellectual disabilities',
+        rank: 'primary',
+        type: 'chronic',
+        status: 'active',
+        onset: '07/25/1974',
+        notedBy: BURKE,
+      },
+      {
+        id: 'ak-dx2',
+        code: 'R26.81',
+        description: 'Unsteadiness on feet',
+        rank: 'secondary',
+        type: 'acute',
+        status: 'active',
+        onset: '07/09/2026',
+        notedBy: BURKE,
+      },
+      {
+        id: 'ak-dx3',
+        code: 'Z91.81',
+        description: 'History of falling',
+        rank: 'secondary',
+        type: 'acute',
+        status: 'monitoring',
+        onset: '07/09/2026',
+        notedBy: BURKE,
+      },
+      {
+        id: 'ak-dx4',
+        code: 'M62.81',
+        description: 'Muscle weakness (generalized)',
+        rank: 'secondary',
+        type: 'acute',
+        status: 'active',
+        onset: '07/09/2026',
+        notedBy: BURKE,
+      },
+      {
+        id: 'ak-dx5',
+        code: 'R27.8',
+        description: 'Other lack of coordination',
+        rank: 'secondary',
+        type: 'chronic',
+        status: 'active',
+        onset: '08/06/2026',
+        notedBy: BURKE,
+      },
+    ],
     services: [
       {
         id: 'ak-ot',
@@ -329,12 +403,27 @@ const DETAILS: Record<string, Partial<PatientChart>> = {
         reportedBy: 'Priya Chandran, PT',
       },
     ],
+    records: AALIYAH_RECORDS,
   },
   'p-aisha-vance': {
     sex: 'Female',
     diagnoses: [
-      { code: 'F71', description: 'Moderate intellectual disabilities', rank: 'primary' },
-      { code: 'R26.89', description: 'Other abnormalities of gait', rank: 'secondary' },
+      {
+        id: 'av-dx1',
+        code: 'F71',
+        description: 'Moderate intellectual disabilities',
+        rank: 'primary',
+        type: 'chronic',
+        status: 'active',
+      },
+      {
+        id: 'av-dx2',
+        code: 'R26.89',
+        description: 'Other abnormalities of gait',
+        rank: 'secondary',
+        type: 'acute',
+        status: 'active',
+      },
     ],
     insurance: { primary: 'NJ Medicaid · fee-for-service' },
   },
