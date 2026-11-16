@@ -4,6 +4,7 @@ import type {
   AllergyStatus,
   DiagnosisStatus,
   DiagnosisType,
+  IncidentStatus,
 } from '@/domain/patients/interfaces/PatientInterfaces';
 
 export type ClinicalPill = { label: string; color: ThemeColor; background: ThemeColor };
@@ -39,3 +40,28 @@ export const optionsOf = <T extends string>(labels: Record<T, string | ClinicalP
     const label = labels[value];
     return { value, label: typeof label === 'string' ? label : label.label };
   });
+
+export const INCIDENT_STATUS: Record<IncidentStatus, ClinicalPill> = {
+  open: { label: 'Open', color: 'toneAmberFg', background: 'toneAmberBg' },
+  closed: { label: 'Closed', color: 'textSecondary', background: 'backgroundElement' },
+};
+
+export const INCIDENT_TYPES = [
+  'Fall',
+  'Behavioral',
+  'Injury',
+  'Medication error',
+  'Property damage',
+  'Other',
+] as const;
+
+export const INCIDENT_LOCATIONS = [
+  'Group home',
+  'Day program',
+  'Home',
+  'Community',
+  'Vehicle',
+  'Other',
+] as const;
+
+export const INJURY_SIDES = ['No injury', 'Left side', 'Right side', 'Both sides', 'Head'] as const;

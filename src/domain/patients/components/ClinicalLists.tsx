@@ -1,53 +1,25 @@
-import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/ThemedText';
-import { Pill } from '@/components/ui/Pill';
 import { Spacing } from '@/constants/Theme';
 import {
   ALLERGY_STATUS,
   DIAGNOSIS_STATUS,
   DIAGNOSIS_TYPE,
   SEVERITY,
-  type ClinicalPill,
 } from '@/domain/patients/clinicalStyles';
+import { EMPTY_VALUE, EmptyRow, StatusPill } from '@/domain/patients/components/ChartListParts';
 import { DetailGrid, ExpandableRow, ROW_ACCENTS } from '@/domain/patients/components/ExpandableRow';
 import { PatientCardShell } from '@/domain/patients/components/PatientCardShell';
 import type { Allergy, Diagnosis } from '@/domain/patients/interfaces/PatientInterfaces';
-
-const EMPTY_VALUE = '—';
-
-function useExpanded() {
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
-  const toggle = (id: string) =>
-    setExpanded((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  return { expanded, toggle };
-}
-
-function StatusPill({ pill }: { pill: ClinicalPill }) {
-  return <Pill label={pill.label} dot color={pill.color} backgroundColor={pill.background} />;
-}
-
-function Empty({ text }: { text: string }) {
-  return (
-    <ThemedText themeColor="textSecondary" style={styles.empty}>
-      {text}
-    </ThemedText>
-  );
-}
+import { useExpandedSet } from '@/hooks/useExpandedSet';
 
 export function DiagnosisList({ diagnoses }: { diagnoses: readonly Diagnosis[] }) {
-  const { expanded, toggle } = useExpanded();
+  const { expanded, toggle } = useExpandedSet();
 
   return (
     <PatientCardShell>
       {diagnoses.length === 0 ? (
-        <Empty text="No diagnosis on file." />
+        <EmptyRow text="No diagnosis on file." />
       ) : (
         diagnoses.map((diagnosis, index) => (
           <ExpandableRow
@@ -75,12 +47,12 @@ export function DiagnosisList({ diagnoses }: { diagnoses: readonly Diagnosis[] }
 }
 
 export function AllergyList({ allergies }: { allergies: readonly Allergy[] }) {
-  const { expanded, toggle } = useExpanded();
+  const { expanded, toggle } = useExpandedSet();
 
   return (
     <PatientCardShell>
       {allergies.length === 0 ? (
-        <Empty text="No known allergies." />
+        <EmptyRow text="No known allergies." />
       ) : (
         allergies.map((allergy, index) => (
           <ExpandableRow
@@ -116,9 +88,5 @@ const styles = StyleSheet.create({
   pills: {
     flexDirection: 'row',
     gap: Spacing.two,
-  },
-  empty: {
-    textAlign: 'center',
-    paddingVertical: Spacing.four,
   },
 });

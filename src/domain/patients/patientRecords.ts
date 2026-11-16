@@ -24,6 +24,11 @@ export const SERVICE_NAME: Record<RecordDiscipline, string> = {
   Speech: 'Speech therapy',
 };
 
+export const disciplineCode = (discipline: string) =>
+  (Object.keys(SERVICE_NAME) as RecordDiscipline[]).find(
+    (code) => SERVICE_NAME[code] === discipline
+  ) ?? discipline;
+
 const READ_TITLE: Record<RecordKind, string> = {
   daily: 'Daily note',
   evaluation: 'Evaluation',

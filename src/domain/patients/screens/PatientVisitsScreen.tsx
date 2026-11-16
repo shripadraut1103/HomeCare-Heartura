@@ -5,7 +5,6 @@ import { useCallback, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useTabBarSpace } from '@/components/AppTabs';
-import { ThemedText } from '@/components/ThemedText';
 import {
   FLOATING_ACTION_BUTTON_SIZE,
   FloatingActionButton,
@@ -13,29 +12,18 @@ import {
 import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl';
 import { TabPanel } from '@/components/ui/TabPanel';
 import { Spacing } from '@/constants/Theme';
-import { IncidentReportSheet } from '@/domain/notes/components/IncidentReportSheet';
-import type { IncidentReport } from '@/domain/notes/interfaces/NoteInterfaces';
 import {
   DocumentDetailsSheet,
   type DocumentDetailsSheetData,
 } from '@/domain/patients/components/DocumentDetailsSheet';
 import { DocumentList } from '@/domain/patients/components/DocumentList';
-import { PatientCardShell } from '@/domain/patients/components/PatientCardShell';
+import { AppointmentList, IncidentList } from '@/domain/patients/components/VisitLists';
 import { useRoutePatient } from '@/domain/patients/hooks/usePatients';
 import type { PatientDocument } from '@/domain/patients/interfaces/PatientInterfaces';
-import { addPatientIncident } from '@/domain/patients/store/PatientsReducer';
-import { useProfile } from '@/domain/profile/hooks/useProfile';
-import { VisitCard } from '@/domain/visits/components/VisitCard';
-import {
-  VisitDetailsSheet,
-  type VisitDetailsSheetData,
-} from '@/domain/visits/components/VisitDetailsSheet';
 import { useAllVisits } from '@/domain/visits/hooks/useVisits';
 import { useTheme } from '@/hooks/useTheme';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
-import { formatNumericDate, formatTime } from '@/utils/dateFormat';
-import { haptics } from '@/utils/haptics';
 
 type VisitsTab = 'documents' | 'appointments' | 'incidents';
 
@@ -52,12 +40,9 @@ export default function PatientVisitsScreen() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const tabBarSpace = useTabBarSpace();
-  const provider = useProfile();
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
   const { patient, chart } = useRoutePatient();
   const visits = useAllVisits();
-  const visitSheet = useRef<BottomSheetModal<VisitDetailsSheetData>>(null);
-  const incidentSheet = useRef<BottomSheetModal>(null);
   const documentSheet = useRef<BottomSheetModal<DocumentDetailsSheetData>>(null);
   const [tab, setTab] = useState<VisitsTab>(isTab(tabParam) ? tabParam : 'documents');
 
@@ -93,17 +78,6 @@ export default function PatientVisitsScreen() {
     }
   };
 
-  const saveIncident = (incident: IncidentReport) => {
-    dispatch(
-      addPatientIncident({
-        patientId: patient.id,
-        incident: { ...incident, reportedBy: provider.name },
-      })
-    );
-    haptics.success();
-    notice('Incident reported');
-  };
-
   const fab =
     tab === 'documents'
       ? {
@@ -113,11 +87,18 @@ export default function PatientVisitsScreen() {
         }
       : tab === 'appointments'
         ? {
-            label: 'Create visit',
+            label: 'Schedule appointment',
             onPress: () =>
-              router.push({ pathname: '/create-visit', params: { patientId: patient.id } }),
+              router.push({
+                pathname: '/schedule-appointment',
+                params: { patientId: patient.id },
+              }),
           }
-        : { label: 'Report incident', onPress: () => incidentSheet.current?.present() };
+        : {
+            label: 'Add incident',
+            onPress: () =>
+              router.push({ pathname: '/add-incident', params: { patientId: patient.id } }),
+          };
 
   return (
     <View style={styles.container}>
@@ -137,65 +118,25 @@ export default function PatientVisitsScreen() {
               onOpenDetails={(document) => documentSheet.current?.present({ document })}
             />
           ) : tab === 'appointments' ? (
-            patientVisits.length > 0 ? (
-              patientVisits.map((visit) => (
-                <VisitCard
-                  key={visit.id}
-                  visit={visit}
-                  onPress={(item) => visitSheet.current?.present({ visitId: item.id })}
-                />
-              ))
-            ) : (
-              <PatientCardShell>
-                <Empty text="No appointments yet." />
-              </PatientCardShell>
-            )
+            <AppointmentList visits={patientVisits} />
           ) : (
-            <PatientCardShell>
-              {chart.incidents.length > 0 ? (
-                chart.incidents.map((incident, index) => (
-                  <View
-                    key={incident.id}
-                    style={[
-                      styles.incident,
-                      index > 0 && [styles.divider, { borderTopColor: theme.border }],
-                    ]}>
-                    <ThemedText themeColor="textSecondary" style={styles.incidentMeta}>
-                      {formatNumericDate(new Date(incident.occurredAt))} ·{' '}
-                      {formatTime(new Date(incident.occurredAt))} · {incident.reportedBy}
-                    </ThemedText>
-                    <ThemedText style={styles.incidentText}>{incident.description}</ThemedText>
-                  </View>
-                ))
-              ) : (
-                <Empty text="No incidents reported." />
-              )}
-            </PatientCardShell>
+            <IncidentList incidents={chart.incidents} />
           )}
         </ScrollView>
       </TabPanel>
       <View style={[styles.fab, { bottom: tabBarSpace - Spacing.two }]}>
         <FloatingActionButton
+          key={fab.label}
           label={fab.label}
           accessibilityLabel={fab.label}
           onPress={fab.onPress}
         />
       </View>
-      <VisitDetailsSheet ref={visitSheet} />
       <DocumentDetailsSheet
         ref={documentSheet}
         onOpenFile={(document) => void openDocument(document)}
       />
-      <IncidentReportSheet ref={incidentSheet} onSave={saveIncident} />
     </View>
-  );
-}
-
-function Empty({ text }: { text: string }) {
-  return (
-    <ThemedText themeColor="textSecondary" style={styles.empty}>
-      {text}
-    </ThemedText>
   );
 }
 
@@ -214,36 +155,6 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.two,
-  },
-  open: {
-    alignSelf: 'flex-start',
-  },
-  showAll: {
-    alignItems: 'center',
-    paddingVertical: Spacing.two,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  divider: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
-  incident: {
-    gap: Spacing.one,
-    paddingHorizontal: Spacing.four,
-    paddingVertical: Spacing.three,
-  },
-  incidentMeta: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 600,
-  },
-  incidentText: {
-    fontSize: 17,
-    lineHeight: 24,
-    fontWeight: 400,
-  },
-  empty: {
-    textAlign: 'center',
-    paddingVertical: Spacing.four,
   },
   fab: {
     position: 'absolute',

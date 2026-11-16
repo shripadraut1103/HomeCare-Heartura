@@ -40,6 +40,21 @@ const visit = (seed: VisitSeed): Visit => ({
   ...seed,
 });
 
+const AALIYAH_OT_VISITS: [
+  id: string,
+  month: number,
+  day: number,
+  hour: number,
+  status: Visit['status'],
+][] = [
+  ['ak-v1', 10, 8, 10, 'scheduled'],
+  ['ak-v2', 10, 1, 15, 'completed'],
+  ['ak-v3', 9, 29, 10, 'cancelled'],
+  ['ak-v4', 9, 22, 10, 'noShow'],
+  ['ak-v5', 9, 15, 10, 'completed'],
+  ['ak-v6', 9, 8, 15, 'completed'],
+];
+
 export const MOCK_VISITS: Visit[] = [
   visit({
     id: 'v1',
@@ -202,4 +217,21 @@ export const MOCK_VISITS: Visit[] = [
     status: 'completed',
     summary: 'PT · Daily visit · Private pay',
   }),
+  ...AALIYAH_OT_VISITS.map(([id, month, day, hour, status]) =>
+    visit({
+      id,
+      patientId: 'p-aaliyah-kaplan',
+      patientName: 'Aaliyah Kaplan',
+      startsAt: new Date(2026, month - 1, day, hour, 0).toISOString(),
+      durationMinutes: 60,
+      status,
+      discipline: 'Occupational therapy',
+      providerName: 'Marcus Webb, OT',
+      location: 'Group home · 14',
+      address: '18 Cedar Ln, Paramus, NJ 07652',
+      payer: 'NJ Medicaid · PA 26088410',
+      units: { summary: status === 'completed' ? '4 units' : '4 units planned' },
+      summary: 'OT · Daily visit · Group home',
+    })
+  ),
 ];

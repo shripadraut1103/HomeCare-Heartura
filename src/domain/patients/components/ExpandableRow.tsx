@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type TextStyle } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -27,6 +27,8 @@ type ExpandableRowProps = {
   onToggle: () => void;
   isFirst?: boolean;
   linkTitle?: boolean;
+  titleLines?: number;
+  titleStyle?: StyleProp<TextStyle>;
   children?: ReactNode;
 };
 
@@ -39,6 +41,8 @@ export function ExpandableRow({
   onToggle,
   isFirst = false,
   linkTitle = false,
+  titleLines,
+  titleStyle,
   children,
 }: ExpandableRowProps) {
   const theme = useTheme();
@@ -62,7 +66,8 @@ export function ExpandableRow({
         <View style={styles.text}>
           <ThemedText
             themeColor={linkTitle ? 'primary' : undefined}
-            style={[styles.title, linkTitle && styles.link]}>
+            numberOfLines={expanded ? undefined : titleLines}
+            style={[styles.title, linkTitle && styles.link, titleStyle]}>
             {title}
           </ThemedText>
           {subtitle ? (

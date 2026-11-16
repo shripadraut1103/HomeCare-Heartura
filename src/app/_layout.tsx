@@ -43,6 +43,9 @@ function RootNavigator() {
         <Stack.Screen name="add-history" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="add-diagnosis" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="add-allergy" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="add-incident" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="add-note" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="add-insurance" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="upload-document" options={{ presentation: 'fullScreenModal' }} />
       </Stack.Protected>
       <Stack.Protected guard={!isLoggedIn}>

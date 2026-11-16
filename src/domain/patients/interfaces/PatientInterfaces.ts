@@ -89,6 +89,24 @@ export interface ChartNote {
   text: string;
   author: string;
   date: string;
+  critical?: boolean;
+}
+
+export type CoverageLevel = 'primary' | 'secondary' | 'tertiary';
+
+export interface InsurancePlan {
+  id: string;
+  coverage: CoverageLevel;
+  name: string;
+  relationship: string;
+  memberId?: string;
+  planName?: string;
+  planType?: string;
+  groupId?: string;
+  effectiveStart?: string;
+  effectiveEnd?: string;
+  cardFront?: string;
+  cardBack?: string;
 }
 
 export type DocumentStatus = 'current' | 'signed' | 'onFile' | 'superseded';
@@ -159,11 +177,21 @@ export interface ChartRecord {
   values?: Record<string, string | readonly string[]>;
 }
 
+export type IncidentStatus = 'open' | 'closed';
+
 export interface PatientIncident {
   id: string;
+  code: string;
   occurredAt: string;
   description: string;
   reportedBy: string;
+  type?: string;
+  location?: string;
+  injury?: string;
+  witnessedBy?: string;
+  actionTaken?: string;
+  status?: IncidentStatus;
+  notifyOffice?: boolean;
 }
 
 export interface PatientChart {
@@ -179,6 +207,7 @@ export interface PatientChart {
   email?: string;
   allergies: readonly Allergy[];
   insurance: { primary: string; secondary?: string };
+  insurancePlans: readonly InsurancePlan[];
   diagnoses: readonly Diagnosis[];
   services: readonly PatientService[];
   notes: readonly ChartNote[];

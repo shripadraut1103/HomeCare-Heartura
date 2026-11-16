@@ -2,14 +2,18 @@ import { createSlice, nanoid, type PayloadAction } from '@reduxjs/toolkit';
 
 import type {
   Allergy,
+  ChartNote,
   Diagnosis,
   HistoryEntry,
+  InsurancePlan,
   PatientDocument,
   PatientIncident,
   PatientsState,
 } from '@/domain/patients/interfaces/PatientInterfaces';
 import { MOCK_PATIENT_CHARTS } from '@/domain/patients/mocks/PatientChartMocks';
 import { PATIENTS_REDUCER } from '@/store/constants/StoreConstants';
+
+const INCIDENT_BASE = 1000;
 
 const initialState: PatientsState = {
   charts: MOCK_PATIENT_CHARTS,
@@ -61,15 +65,53 @@ const PatientsReducer = createSlice({
         payload: { ...payload, allergy: { ...payload.allergy, id: nanoid() } },
       }),
     },
-    addPatientIncident: {
-      reducer: (state, action: PayloadAction<{ patientId: string; incident: PatientIncident }>) => {
-        state.charts[action.payload.patientId]?.incidents.unshift(action.payload.incident);
+    addChartNote: {
+      reducer: (state, action: PayloadAction<{ patientId: string; note: ChartNote }>) => {
+        state.charts[action.payload.patientId]?.notes.unshift(action.payload.note);
       },
-      prepare: (payload: { patientId: string; incident: PatientIncident }) => ({ payload }),
+      prepare: (payload: { patientId: string; note: Omit<ChartNote, 'id'> }) => ({
+        payload: { ...payload, note: { ...payload.note, id: nanoid() } },
+      }),
+    },
+    addInsurancePlan: {
+      reducer: (state, action: PayloadAction<{ patientId: string; plan: InsurancePlan }>) => {
+        state.charts[action.payload.patientId]?.insurancePlans.push(action.payload.plan);
+      },
+      prepare: (payload: { patientId: string; plan: Omit<InsurancePlan, 'id'> }) => ({
+        payload: { ...payload, plan: { ...payload.plan, id: nanoid() } },
+      }),
+    },
+    addPatientIncident: {
+      reducer: (
+        state,
+        action: PayloadAction<{ patientId: string; incident: Omit<PatientIncident, 'code'> }>
+      ) => {
+        const chart = state.charts[action.payload.patientId];
+        if (!chart) return;
+        const last = Math.max(
+          INCIDENT_BASE,
+          ...chart.incidents.map((item) => Number(item.code.replace(/\D/g, '')) || 0)
+        );
+        chart.incidents.unshift({
+          status: 'open',
+          ...action.payload.incident,
+          code: `INC-${last + 1}`,
+        });
+      },
+      prepare: (payload: { patientId: string; incident: Omit<PatientIncident, 'code'> }) => ({
+        payload,
+      }),
     },
   },
 });
 
 export default PatientsReducer.reducer;
-export const { addPatientDocument, addHistoryEntry, addDiagnosis, addAllergy, addPatientIncident } =
-  PatientsReducer.actions;
+export const {
+  addPatientDocument,
+  addHistoryEntry,
+  addDiagnosis,
+  addAllergy,
+  addChartNote,
+  addInsurancePlan,
+  addPatientIncident,
+} = PatientsReducer.actions;
