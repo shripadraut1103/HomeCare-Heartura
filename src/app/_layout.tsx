@@ -11,6 +11,7 @@ import { PersistGate } from 'redux-persist/integration/react';
 
 import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { ToastHost } from '@/components/ToastHost';
+import { useSessionProfile } from '@/domain/auth/hooks/useSessionProfile';
 import { useApplyAppearance } from '@/domain/profile/hooks/useApplyAppearance';
 import { useAppSelector } from '@/store/hooks';
 import { persistor, store } from '@/store/storeConfig';
@@ -20,6 +21,7 @@ const PUSHED_SCREEN = { animation: 'ios_from_right', fullScreenGestureEnabled: t
 function RootNavigator() {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
   useApplyAppearance();
+  useSessionProfile();
 
   return (
     <Stack

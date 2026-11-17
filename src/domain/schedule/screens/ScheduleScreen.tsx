@@ -8,10 +8,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTabBarSpace } from '@/components/AppTabs';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import {
-  FLOATING_ACTION_BUTTON_SIZE,
-  FloatingActionButton,
-} from '@/components/ui/FloatingActionButton';
+import { FLOATING_ACTION_BUTTON_SIZE } from '@/components/ui/FloatingActionButton';
+import { FloatingActionMenu } from '@/components/ui/FloatingActionMenu';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import { Spacing } from '@/constants/Theme';
@@ -64,6 +62,9 @@ export default function ScheduleScreen() {
 
   const scheduleAppointment = () =>
     router.push({ pathname: '/schedule-appointment', params: { date: toIsoDate(selected) } });
+
+  const createVisit = () =>
+    router.push({ pathname: '/create-visit', params: { date: toIsoDate(selected) } });
 
   const listHeader = (
     <View style={styles.listHeader}>
@@ -162,9 +163,26 @@ export default function ScheduleScreen() {
       </SafeAreaView>
 
       <View style={[styles.fab, { bottom: tabBarSpace - Spacing.two }]}>
-        <FloatingActionButton
-          accessibilityLabel="Schedule appointment"
-          onPress={scheduleAppointment}
+        <FloatingActionMenu
+          accessibilityLabel="Add to schedule"
+          actions={[
+            {
+              key: 'appointment',
+              icon: { ios: 'calendar.badge.plus', android: 'calendar_add_on' },
+              iconColor: 'primary',
+              title: 'Schedule appointment',
+              description: 'Book a future visit, once or repeating',
+              onPress: scheduleAppointment,
+            },
+            {
+              key: 'visit',
+              icon: { ios: 'plus', android: 'add' },
+              iconColor: 'accent',
+              title: 'Create visit',
+              description: 'Log a visit, including makeups and reschedules',
+              onPress: createVisit,
+            },
+          ]}
         />
       </View>
 

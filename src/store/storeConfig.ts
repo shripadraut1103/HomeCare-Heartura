@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { FLUSH, PAUSE, PERSIST, persistStore, PURGE, REGISTER, REHYDRATE } from 'redux-persist';
 
+import { configureApiSession } from '@/config/AxiosConfig';
 import { persistedReducer } from '@/store/persistConfig';
 
 export const createStore = () =>
@@ -15,6 +16,11 @@ export const createStore = () =>
   });
 
 const store = createStore();
+
+configureApiSession({
+  getTenant: () => null,
+  getAccessToken: () => store.getState().auth.accessToken,
+});
 
 const persistor = persistStore(store);
 

@@ -4,7 +4,11 @@
  */
 export interface ServiceError {
   error: string;
+  code: string;
   status: number | null;
+  details: Record<string, unknown>;
+  fields: Record<string, string[]>;
+  retryAfter?: number;
 }
 
 export interface ServiceSuccess<T> {

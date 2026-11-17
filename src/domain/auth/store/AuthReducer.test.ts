@@ -1,6 +1,13 @@
+import { serviceError } from '@/config/ApiError';
 import type { LoginFormValues } from '@/domain/auth/schemas/loginSchema';
 import authReducer, { resetAuthReducer } from '@/domain/auth/store/AuthReducer';
-import { loginAction } from '@/domain/auth/store/async-actions/AuthAsyncActions';
+import {
+  fetchMeAction,
+  loginAction,
+  logoutAction,
+  resendTwoFactorAction,
+  verifyTwoFactorAction,
+} from '@/domain/auth/store/async-actions/AuthAsyncActions';
 
 const credentials: LoginFormValues = { email: 'helena.ruiz@example.com', password: 'secret' };
 const initialState = authReducer(undefined, { type: 'init' });
@@ -16,7 +23,7 @@ describe('AuthReducer', () => {
     const state = authReducer(
       { ...initialState, loading: true },
       loginAction.fulfilled(
-        { error: 'Invalid credentials', status: 401 },
+        serviceError('AUTH_FAILED', 'Invalid credentials', 401),
         'request-id',
         credentials
       )
@@ -25,32 +32,141 @@ describe('AuthReducer', () => {
     expect(state).toEqual({ ...initialState, loading: false, isLoggedIn: false });
   });
 
-  it('stores tokens and logs in on success', () => {
+  it('keeps the 2FA challenge when a code was emailed', () => {
     const state = authReducer(
       initialState,
       loginAction.fulfilled(
-        { data: { accessToken: 'access', refreshToken: 'refresh' } },
+        {
+          data: {
+            two_factor_required: true,
+            challenge_id: 'challenge-1',
+            challenge_expires_at: '2026-11-17T10:10:00Z',
+          },
+        },
+        'request-id',
+        credentials
+      )
+    );
+
+    expect(state.isLoggedIn).toBe(false);
+    expect(state.challenge).toEqual({
+      id: 'challenge-1',
+      expiresAt: '2026-11-17T10:10:00Z',
+      email: credentials.email,
+    });
+  });
+
+  it('stores tokens and logs in when no code is needed', () => {
+    const tokens = {
+      access: 'access',
+      refresh: 'refresh',
+      access_expires_at: '2026-11-17T10:15:00Z',
+      refresh_expires_at: '2026-12-17T10:00:00Z',
+    };
+    const me = { session_timeout_minutes: 43200 };
+    const state = authReducer(
+      initialState,
+      loginAction.fulfilled(
+        { data: { two_factor_required: false, me, tokens } },
         'request-id',
         credentials
       )
     );
 
     expect(state).toEqual({
+      ...initialState,
       isLoggedIn: true,
-      loading: false,
       accessToken: 'access',
       refreshToken: 'refresh',
+      accessExpiresAt: '2026-11-17T10:15:00Z',
+      refreshExpiresAt: '2026-12-17T10:00:00Z',
+      me,
     });
   });
 
   it('clears the session on reset', () => {
     const loggedIn = {
+      ...initialState,
       isLoggedIn: true,
-      loading: false,
       accessToken: 'access',
       refreshToken: 'refresh',
     };
 
     expect(authReducer(loggedIn, resetAuthReducer())).toEqual(initialState);
+  });
+
+  it('keeps the profile from me', () => {
+    const me = { session_timeout_minutes: 43200 };
+    const state = authReducer(initialState, fetchMeAction.fulfilled({ data: me }, 'request-id'));
+
+    expect(state.me).toEqual(me);
+  });
+
+  it('clears the session on logout, even if the server call failed', () => {
+    const loggedIn = { ...initialState, isLoggedIn: true, refreshToken: 'refresh' };
+
+    expect(authReducer(loggedIn, logoutAction.fulfilled(undefined, 'request-id'))).toEqual(
+      initialState
+    );
+  });
+
+  describe('two-factor code', () => {
+    const challenge = { id: 'challenge-1', expiresAt: '2026-11-17T10:10:00Z', email: 'a@b.c' };
+    const waiting = { ...initialState, challenge };
+
+    it('signs in and forgets the challenge once the code is accepted', () => {
+      const tokens = {
+        access: 'access',
+        refresh: 'refresh',
+        access_expires_at: '2026-11-17T10:15:00Z',
+        refresh_expires_at: '2026-12-17T10:00:00Z',
+      };
+      const state = authReducer(
+        waiting,
+        verifyTwoFactorAction.fulfilled(
+          { data: { two_factor_required: false, me: {}, tokens } },
+          'request-id',
+          { challengeId: 'challenge-1', code: '123456' }
+        )
+      );
+
+      expect(state).toMatchObject({ isLoggedIn: true, accessToken: 'access', challenge: null });
+    });
+
+    it('stays on the code step when the code is wrong', () => {
+      const state = authReducer(
+        waiting,
+        verifyTwoFactorAction.fulfilled(
+          serviceError('TWO_FACTOR_INVALID', 'Wrong code.', 401),
+          'request-id',
+          { challengeId: 'challenge-1', code: '000000' }
+        )
+      );
+
+      expect(state).toEqual(waiting);
+    });
+
+    it('swaps in the new challenge after a resend', () => {
+      const state = authReducer(
+        waiting,
+        resendTwoFactorAction.fulfilled(
+          {
+            data: {
+              two_factor_required: true,
+              challenge_id: 'challenge-2',
+              challenge_expires_at: '2026-11-17T10:20:00Z',
+            },
+          },
+          'request-id',
+          { challengeId: 'challenge-1' }
+        )
+      );
+
+      expect(state.challenge).toEqual({
+        ...challenge,
+        id: 'challenge-2',
+        expiresAt: '2026-11-17T10:20:00Z',
+      });
+    });
   });
 });

@@ -29,7 +29,7 @@ import { addVisits, removeVisits } from '@/domain/visits/store/VisitsReducer';
 import { useTheme } from '@/hooks/useTheme';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
-import { formatNumericDate } from '@/utils/dateFormat';
+import { formatNumericDate, parseIsoDate } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
 
 type VisitFor = 'new' | 'cancelled' | 'rescheduled';
@@ -55,10 +55,13 @@ const VISIT_FOR: readonly { value: VisitFor; label: string; hint: string }[] = [
 const DEFAULT_MINUTES = 45;
 const SLOT_MINUTES = 15;
 
-const roundedNow = () => {
-  const now = new Date();
-  now.setMinutes(Math.floor(now.getMinutes() / SLOT_MINUTES) * SLOT_MINUTES, 0, 0);
-  return now;
+const initialStart = (date: string | undefined) => {
+  const start = new Date();
+  start.setMinutes(Math.floor(start.getMinutes() / SLOT_MINUTES) * SLOT_MINUTES, 0, 0);
+  if (!date) return start;
+  const day = parseIsoDate(date);
+  start.setFullYear(day.getFullYear(), day.getMonth(), day.getDate());
+  return start;
 };
 
 export default function CreateVisitScreen() {
@@ -66,14 +69,14 @@ export default function CreateVisitScreen() {
   const dispatch = useAppDispatch();
   const provider = useProfile();
   const patients = usePatients();
-  const { patientId } = useLocalSearchParams<{ patientId?: string }>();
+  const { patientId, date } = useLocalSearchParams<{ patientId?: string; date?: string }>();
   const [visitFor, setVisitFor] = useState<VisitFor>('new');
   const [patient, setPatient] = useState<Patient | undefined>(() =>
     patients.find((item) => item.id === patientId)
   );
   const [location, setLocation] = useState<string | null>(patient?.serviceLocation ?? null);
   const [serviceId, setServiceId] = useState<string | null>(null);
-  const [start, setStart] = useState(roundedNow);
+  const [start, setStart] = useState(() => initialStart(date));
   const [minutes, setMinutes] = useState(DEFAULT_MINUTES);
   const chart = usePatientChart(patient?.id);
 

@@ -1,4 +1,4 @@
-import type { LoginResponse } from '@/domain/auth/interfaces/AuthInterfaces';
+import type { AuthMe, LoginResponse } from '@/domain/auth/interfaces/AuthInterfaces';
 
 export const MOCK_CREDENTIALS = {
   email: 'admin@gmail.com',
@@ -10,7 +10,18 @@ export const MOCK_USER = {
   organization: 'HomeCare Therapeutics',
 };
 
+export const MOCK_ME: AuthMe = {
+  member: { permission_codes: [] },
+  session_timeout_minutes: 43200,
+};
+
 export const MOCK_LOGIN_RESPONSE: LoginResponse = {
-  accessToken: 'mock-access-token',
-  refreshToken: 'mock-refresh-token',
+  two_factor_required: false,
+  me: MOCK_ME,
+  tokens: {
+    access: 'mock-access-token',
+    refresh: 'mock-refresh-token',
+    access_expires_at: '2099-01-01T00:00:00Z',
+    refresh_expires_at: '2099-01-01T00:00:00Z',
+  },
 };

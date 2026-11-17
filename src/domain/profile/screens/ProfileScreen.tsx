@@ -10,7 +10,7 @@ import { ThemedView } from '@/components/ThemedView';
 import { DetailRow, detailValueTextStyle } from '@/components/ui/DetailRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Spacing } from '@/constants/Theme';
-import { lockSession } from '@/domain/auth/store/AuthReducer';
+import { logoutAction } from '@/domain/auth/store/async-actions/AuthAsyncActions';
 import { ChangePasswordSheet } from '@/domain/profile/components/ChangePasswordSheet';
 import { MenuRow } from '@/domain/profile/components/MenuRow';
 import { ProfileCard } from '@/domain/profile/components/ProfileCard';
@@ -43,7 +43,7 @@ export default function ProfileScreen() {
       confirmLabel: 'Sign out',
       destructive: true,
     });
-    if (confirmed) dispatch(lockSession());
+    if (confirmed) void dispatch(logoutAction());
   };
   // Patient requests lives in the Home stack; the anchor keeps Home underneath for Back.
   const openRequests = () => router.push('/patient-requests', { withAnchor: true });

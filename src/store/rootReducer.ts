@@ -1,5 +1,7 @@
 import { combineReducers, type Reducer } from '@reduxjs/toolkit';
+import { persistReducer, type PersistConfig } from 'redux-persist';
 
+import type { AuthState } from '@/domain/auth/interfaces/AuthInterfaces';
 import authReducer from '@/domain/auth/store/AuthReducer';
 import communicationsReducer from '@/domain/communications/store/CommunicationsReducer';
 import notesReducer from '@/domain/notes/store/NotesReducer';
@@ -11,10 +13,19 @@ import profileReducer from '@/domain/profile/store/ProfileReducer';
 import requestsReducer from '@/domain/requests/store/RequestsReducer';
 import visitsReducer from '@/domain/visits/store/VisitsReducer';
 import ToastReducer from '@/store/common-reducer/ToastReducer';
+import { AUTH_REDUCER } from '@/store/constants/StoreConstants';
 import type { AppState } from '@/store/interfaces/AppState';
+import { secureStorage } from '@/store/secureStorage';
+
+const authPersistConfig: PersistConfig<AuthState> = {
+  key: AUTH_REDUCER,
+  version: 1,
+  storage: secureStorage,
+  whitelist: ['isLoggedIn', 'accessToken', 'refreshToken', 'accessExpiresAt', 'refreshExpiresAt'],
+};
 
 export const rootReducer: Reducer<AppState> = combineReducers({
-  auth: authReducer,
+  auth: persistReducer(authPersistConfig, authReducer),
   availability: availabilityReducer,
   blockDays: blockDaysReducer,
   communications: communicationsReducer,

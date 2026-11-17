@@ -1,3 +1,4 @@
+import type { PersistPartial } from 'redux-persist/es/persistReducer';
 import type { AuthState } from '@/domain/auth/interfaces/AuthInterfaces';
 import type { CommunicationsState } from '@/domain/communications/interfaces/CommunicationInterfaces';
 import type { NotesState } from '@/domain/notes/store/NotesReducer';
@@ -13,7 +14,7 @@ import type { VisitsState } from '@/domain/visits/store/VisitsReducer';
 import type { ToastState } from '@/store/common-reducer/ToastReducer';
 
 export interface AppState {
-  auth: AuthState;
+  auth: AuthState & PersistPartial;
   availability: AvailabilityState;
   blockDays: BlockDaysState;
   communications: CommunicationsState;

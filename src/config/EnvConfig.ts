@@ -13,6 +13,5 @@ if (!isAppEnv(appEnv)) {
 
 export const EnvConfig = {
   appEnv,
-  /** Base URL for `AxiosConfig` once the API is integrated. */
   apiUrl: process.env.EXPO_PUBLIC_API_URL ?? '',
 } as const;
