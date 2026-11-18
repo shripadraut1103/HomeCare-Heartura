@@ -67,6 +67,7 @@ export type AppearancePreference = 'system' | 'light' | 'dark';
 export interface PreferencesState {
   appearance: AppearancePreference;
   biometricUnlock: boolean;
+  organization: string;
 }
 
 export interface BlockedDay {

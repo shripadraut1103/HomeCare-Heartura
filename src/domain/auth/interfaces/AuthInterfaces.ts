@@ -6,7 +6,8 @@ export interface AuthTokens {
 }
 
 export interface AuthMe {
-  member?: { permission_codes?: string[] };
+  organization?: { slug: string; name: string; timezone: string } | null;
+  member?: { id: string; permission_codes?: string[] } | null;
   session_timeout_minutes?: number;
   [field: string]: unknown;
 }

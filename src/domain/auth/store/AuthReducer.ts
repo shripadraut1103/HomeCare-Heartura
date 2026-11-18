@@ -1,6 +1,6 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
-import type { AuthState, SignedIn } from '@/domain/auth/interfaces/AuthInterfaces';
+import type { AuthState, AuthTokens, SignedIn } from '@/domain/auth/interfaces/AuthInterfaces';
 import {
   fetchMeAction,
   loginAction,
@@ -21,11 +21,15 @@ const initialState: AuthState = {
   challenge: null,
 };
 
-const startSession = (state: AuthState, { tokens, me }: SignedIn) => {
+const saveTokens = (state: AuthState, tokens: AuthTokens) => {
   state.accessToken = tokens.access;
   state.refreshToken = tokens.refresh;
   state.accessExpiresAt = tokens.access_expires_at;
   state.refreshExpiresAt = tokens.refresh_expires_at;
+};
+
+const startSession = (state: AuthState, { tokens, me }: SignedIn) => {
+  saveTokens(state, tokens);
   state.me = me;
   state.challenge = null;
   state.isLoggedIn = true;
@@ -36,6 +40,10 @@ const AuthReducer = createSlice({
   initialState,
   reducers: {
     resetAuthReducer: () => initialState,
+    tokensRefreshed: (state, action: PayloadAction<AuthTokens>) => {
+      saveTokens(state, action.payload);
+    },
+    sessionExpired: () => initialState,
     clearChallenge: (state) => {
       state.challenge = null;
     },
@@ -94,4 +102,11 @@ const AuthReducer = createSlice({
 });
 
 export default AuthReducer.reducer;
-export const { resetAuthReducer, clearChallenge, lockSession, unlockSession } = AuthReducer.actions;
+export const {
+  resetAuthReducer,
+  clearChallenge,
+  tokensRefreshed,
+  sessionExpired,
+  lockSession,
+  unlockSession,
+} = AuthReducer.actions;

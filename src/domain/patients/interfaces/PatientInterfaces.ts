@@ -217,6 +217,18 @@ export interface PatientChart {
   records: readonly ChartRecord[];
 }
 
+export interface PatientListState {
+  ids: string[];
+  count: number;
+  page: number;
+  hasMore: boolean;
+  loading: boolean;
+  error: string | null;
+}
+
 export interface PatientsState {
+  byId: Record<string, Patient>;
+  list: PatientListState;
+  detailError: string | null;
   charts: Record<string, PatientChart>;
 }

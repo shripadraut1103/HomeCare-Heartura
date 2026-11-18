@@ -1,16 +1,16 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 
-import type { LoginFormValues } from '@/domain/auth/schemas/loginSchema';
-import AuthService from '@/domain/auth/store/services/AuthServices';
 import type {
   AuthMe,
   LoginResponse,
   SignedIn,
   TwoFactorRequired,
 } from '@/domain/auth/interfaces/AuthInterfaces';
-import type { ServiceResult } from '@/types/ServiceInterfaces';
+import type { LoginFormValues } from '@/domain/auth/schemas/loginSchema';
+import AuthService from '@/domain/auth/store/services/AuthServices';
 import { AUTH_REDUCER } from '@/store/constants/StoreConstants';
 import type { RootState } from '@/store/storeConfig';
+import type { ServiceResult } from '@/types/ServiceInterfaces';
 
 export const loginAction = createAsyncThunk<
   ServiceResult<LoginResponse>,
@@ -23,7 +23,6 @@ export const fetchMeAction = createAsyncThunk<ServiceResult<AuthMe>, void, { sta
   async () => AuthService.getMe()
 );
 
-// The server call is best effort: the session is cleared on this device even if it fails offline.
 export const logoutAction = createAsyncThunk<void, void, { state: RootState }>(
   AUTH_REDUCER + '/logout',
   async (_, { getState }) => {

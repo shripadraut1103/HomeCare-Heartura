@@ -17,7 +17,7 @@ import { haptics } from '@/utils/haptics';
 
 export type PatientFilterSheetData = {
   status: StatusFilter;
-  counts: Record<StatusFilter, number>;
+  counts?: Record<StatusFilter, number>;
 };
 
 type PatientFilterSheetProps = {
@@ -74,7 +74,7 @@ function FilterContent({
             <FilterRow
               key={option.key}
               label={option.label}
-              count={counts[option.key]}
+              count={counts?.[option.key]}
               selected={option.key === status}
               onPress={() => choose(option.key)}
             />
@@ -93,7 +93,7 @@ function FilterRow({
   onPress,
 }: {
   label: string;
-  count: number;
+  count?: number;
   selected: boolean;
   onPress: () => void;
 }) {
@@ -103,11 +103,13 @@ function FilterRow({
     <Pressable
       accessibilityRole="radio"
       accessibilityState={{ selected }}
-      accessibilityLabel={`${label}, ${count}`}
+      accessibilityLabel={count === undefined ? label : `${label}, ${count}`}
       onPress={onPress}
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: theme.surfaceMuted }]}>
       <ThemedText style={styles.rowLabel}>{label}</ThemedText>
-      <Pill label={count} color="primary" backgroundColor="toneBlueBg" />
+      {count === undefined ? null : (
+        <Pill label={count} color="primary" backgroundColor="toneBlueBg" />
+      )}
       <View style={styles.check}>
         {selected ? (
           <Icon

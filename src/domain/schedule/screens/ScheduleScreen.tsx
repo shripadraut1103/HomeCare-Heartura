@@ -35,7 +35,8 @@ import {
   VisitDetailsSheet,
   type VisitDetailsSheetData,
 } from '@/domain/visits/components/VisitDetailsSheet';
-import { useAllVisits, visitsOn } from '@/domain/visits/hooks/useVisits';
+import { monthRange } from '@/domain/visits/appointmentMapper';
+import { useAllVisits, useVisitsLoader, visitsOn } from '@/domain/visits/hooks/useVisits';
 import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
 import { useTheme } from '@/hooks/useTheme';
 import { formatRelativeDay, toIsoDate } from '@/utils/dateFormat';
@@ -53,6 +54,7 @@ export default function ScheduleScreen() {
   const [selected, setSelected] = useState(() => startOfDay(new Date()));
   const [filter, setFilter] = useState<ScheduleFilter>(EMPTY_SCHEDULE_FILTER);
 
+  const { loading, error, retry } = useVisitsLoader(monthRange(selected));
   const visible = applyScheduleFilter(useAllVisits(), filter);
   const dayVisits = visitsOn(visible, selected);
   const summary = summarizeDay(dayVisits);
@@ -152,7 +154,14 @@ export default function ScheduleScreen() {
           renderItem={renderVisit}
           itemLayoutAnimation={LinearTransition.duration(180)}
           ListHeaderComponent={listHeader}
-          ListEmptyComponent={<ScheduleEmptyState filtered={filtered} />}
+          ListEmptyComponent={
+            <ScheduleEmptyState
+              filtered={filtered}
+              loading={loading}
+              error={error}
+              onRetry={retry}
+            />
+          }
           ItemSeparatorComponent={VisitSeparator}
           contentContainerStyle={[
             styles.content,

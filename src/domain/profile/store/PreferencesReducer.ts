@@ -9,6 +9,7 @@ import { PREFERENCES_REDUCER } from '@/store/constants/StoreConstants';
 const initialState: PreferencesState = {
   appearance: 'system',
   biometricUnlock: true,
+  organization: '',
 };
 
 const PreferencesReducer = createSlice({
@@ -21,8 +22,11 @@ const PreferencesReducer = createSlice({
     setBiometricUnlock: (state, action: PayloadAction<boolean>) => {
       state.biometricUnlock = action.payload;
     },
+    setOrganization: (state, action: PayloadAction<string>) => {
+      state.organization = action.payload;
+    },
   },
 });
 
 export default PreferencesReducer.reducer;
-export const { setAppearance, setBiometricUnlock } = PreferencesReducer.actions;
+export const { setAppearance, setBiometricUnlock, setOrganization } = PreferencesReducer.actions;

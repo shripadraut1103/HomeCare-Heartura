@@ -1,5 +1,6 @@
 import { createSlice, nanoid, type PayloadAction } from '@reduxjs/toolkit';
 
+import type { ApiPatient } from '@/domain/patients/interfaces/PatientApi';
 import type {
   Allergy,
   ChartNote,
@@ -11,12 +12,25 @@ import type {
   PatientsState,
 } from '@/domain/patients/interfaces/PatientInterfaces';
 import { MOCK_PATIENT_CHARTS } from '@/domain/patients/mocks/PatientChartMocks';
+import { toChart, toPatient } from '@/domain/patients/patientMapper';
+import {
+  fetchPatientAction,
+  fetchPatientsAction,
+} from '@/domain/patients/store/async-actions/PatientAsyncActions';
 import { PATIENTS_REDUCER } from '@/store/constants/StoreConstants';
 
 const INCIDENT_BASE = 1000;
 
 const initialState: PatientsState = {
+  byId: {},
+  list: { ids: [], count: 0, page: 0, hasMore: false, loading: false, error: null },
+  detailError: null,
   charts: MOCK_PATIENT_CHARTS,
+};
+
+const savePatient = (state: PatientsState, api: ApiPatient) => {
+  state.byId[api.id] = toPatient(api);
+  state.charts[api.id] = toChart(api, state.charts[api.id]);
 };
 
 const PatientsReducer = createSlice({
@@ -102,6 +116,39 @@ const PatientsReducer = createSlice({
         payload,
       }),
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchPatientsAction.pending, (state, action) => {
+        state.list.loading = true;
+        state.list.error = null;
+        if (action.meta.arg.page === 1) state.list.ids = [];
+      })
+      .addCase(fetchPatientsAction.fulfilled, (state, action) => {
+        state.list.loading = false;
+        if ('error' in action.payload) {
+          state.list.error = action.payload.error;
+          return;
+        }
+        const page = action.payload.data;
+        const results = Array.isArray(page.results) ? page.results : [];
+        results.forEach((api) => savePatient(state, api));
+        const ids = results.map((api) => api.id);
+        state.list.ids = action.meta.arg.page === 1 ? ids : [...state.list.ids, ...ids];
+        state.list.count = page.count;
+        state.list.page = action.meta.arg.page;
+        state.list.hasMore = page.next !== null;
+      })
+      .addCase(fetchPatientsAction.rejected, (state) => {
+        state.list.loading = false;
+      })
+      .addCase(fetchPatientAction.pending, (state) => {
+        state.detailError = null;
+      })
+      .addCase(fetchPatientAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) state.detailError = action.payload.error;
+        else savePatient(state, action.payload.data);
+      });
   },
 });
 

@@ -9,7 +9,11 @@ import {
   verifyTwoFactorAction,
 } from '@/domain/auth/store/async-actions/AuthAsyncActions';
 
-const credentials: LoginFormValues = { email: 'helena.ruiz@example.com', password: 'secret' };
+const credentials: LoginFormValues = {
+  organization: 'hope',
+  email: 'helena.ruiz@example.com',
+  password: 'secret',
+};
 const initialState = authReducer(undefined, { type: 'init' });
 
 describe('AuthReducer', () => {

@@ -3,6 +3,7 @@ export type VisitStatus =
 
 export interface Visit {
   id: string;
+  version?: number;
   patientId: string;
   patientName: string;
   patientTag: string;

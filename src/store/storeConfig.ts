@@ -2,6 +2,8 @@ import { configureStore } from '@reduxjs/toolkit';
 import { FLUSH, PAUSE, PERSIST, persistStore, PURGE, REGISTER, REHYDRATE } from 'redux-persist';
 
 import { configureApiSession } from '@/config/AxiosConfig';
+import { sessionExpired, tokensRefreshed } from '@/domain/auth/store/AuthReducer';
+import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { persistedReducer } from '@/store/persistConfig';
 
 export const createStore = () =>
@@ -18,8 +20,22 @@ export const createStore = () =>
 const store = createStore();
 
 configureApiSession({
-  getTenant: () => null,
+  getTenant: () =>
+    store.getState().preferences.organization ||
+    store.getState().auth.me?.organization?.slug ||
+    null,
   getAccessToken: () => store.getState().auth.accessToken,
+  getRefreshToken: () => store.getState().auth.refreshToken,
+  onTokensRefreshed: (tokens) => store.dispatch(tokensRefreshed(tokens)),
+  onSessionEnded: () => {
+    store.dispatch(sessionExpired());
+    store.dispatch(
+      setToastMessage({
+        message: 'Your session has expired. Please sign in again.',
+        type: 'warning',
+      })
+    );
+  },
 });
 
 const persistor = persistStore(store);

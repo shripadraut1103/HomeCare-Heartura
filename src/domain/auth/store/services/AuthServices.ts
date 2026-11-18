@@ -1,14 +1,14 @@
 import { callApi, serviceError } from '@/config/ApiError';
 import { get, post } from '@/config/AxiosConfig';
 import { EnvConfig } from '@/config/EnvConfig';
-import type { LoginFormValues } from '@/domain/auth/schemas/loginSchema';
 import type {
   AuthMe,
   LoginResponse,
   SignedIn,
   TwoFactorRequired,
 } from '@/domain/auth/interfaces/AuthInterfaces';
-import { MOCK_CREDENTIALS, MOCK_LOGIN_RESPONSE, MOCK_ME } from '@/domain/auth/mocks/AuthMocks';
+import { MOCK_CREDENTIALS, MOCK_ME } from '@/domain/auth/mocks/AuthMocks';
+import type { LoginFormValues } from '@/domain/auth/schemas/loginSchema';
 import type { ServiceResult } from '@/types/ServiceInterfaces';
 
 export const AUTH_ENDPOINTS = {
@@ -37,13 +37,7 @@ class AuthService {
         })
       );
     }
-    // TEMPORARY: mock sign-in while no API URL is configured (see AuthMocks.ts).
-    const isMockUser =
-      data.email.trim().toLowerCase() === MOCK_CREDENTIALS.email &&
-      data.password === MOCK_CREDENTIALS.password;
-    if (isMockUser) {
-      return { data: MOCK_LOGIN_RESPONSE };
-    }
+
     return serviceError('AUTH_FAILED', 'Incorrect email or password.', 401);
   }
 

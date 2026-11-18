@@ -1,23 +1,25 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Pressable, StyleSheet, View, type ListRenderItem } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View, type ListRenderItem } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTabBarSpace } from '@/components/AppTabs';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { SearchField } from '@/components/ui/SearchField';
+import { EnvConfig } from '@/config/EnvConfig';
 import { Radius, Spacing } from '@/constants/Theme';
 import { PatientCard } from '@/domain/patients/components/PatientCard';
 import {
   PatientFilterSheet,
   type PatientFilterSheetData,
 } from '@/domain/patients/components/PatientFilterSheet';
-import { usePatients } from '@/domain/patients/hooks/usePatients';
+import { usePatientList, usePatients } from '@/domain/patients/hooks/usePatients';
 import type { Patient, PatientSort } from '@/domain/patients/interfaces/PatientInterfaces';
 import {
   countByStatus,
@@ -40,14 +42,21 @@ export default function PatientsScreen() {
   const theme = useTheme();
   const tabBarSpace = useTabBarSpace();
   const { agency } = useProfile();
-  const patients = usePatients();
+  const fromApi = Boolean(EnvConfig.apiUrl);
+  const mockPatients = usePatients();
   const filterSheet = useRef<BottomSheetModal<PatientFilterSheetData>>(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('active');
   const [sort, setSort] = useState<PatientSort>('name');
+  const server = usePatientList(query, status);
 
-  const counts = countByStatus(patients);
-  const visible = visiblePatients(patients, status, query, sort);
+  const counts = fromApi ? undefined : countByStatus(mockPatients);
+  const visible = fromApi
+    ? visiblePatients(server.patients, 'all', '', sort)
+    : visiblePatients(mockPatients, status, query, sort);
+  const total = fromApi ? server.count : visible.length;
+  const loading = fromApi && server.loading;
+  const error = fromApi ? server.error : null;
   const statusLabel = status === 'all' ? 'all' : PATIENT_STATUS[status].label;
   const filtered = status !== 'active';
 
@@ -71,7 +80,8 @@ export default function PatientsScreen() {
             Patients
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.subtitle}>
-            {agency.name} • {patients.length} patients
+            {agency.name}
+            {fromApi ? '' : ` • ${mockPatients.length} patients`}
           </ThemedText>
         </View>
 
@@ -107,8 +117,7 @@ export default function PatientsScreen() {
 
         <View style={styles.listHeader}>
           <ThemedText themeColor="textSecondary" style={styles.count}>
-            {visible.length} {visible.length === 1 ? 'PATIENT' : 'PATIENTS'} ·{' '}
-            {statusLabel.toUpperCase()}
+            {total} {total === 1 ? 'PATIENT' : 'PATIENTS'} · {statusLabel.toUpperCase()}
           </ThemedText>
           <Pressable
             accessibilityRole="button"
@@ -130,12 +139,33 @@ export default function PatientsScreen() {
           renderItem={renderPatient}
           itemLayoutAnimation={LinearTransition.duration(180)}
           ItemSeparatorComponent={Separator}
+          onEndReached={server.loadMore}
+          onEndReachedThreshold={0.5}
+          refreshing={false}
+          onRefresh={fromApi ? server.refresh : undefined}
+          ListFooterComponent={
+            loading && visible.length > 0 ? <ActivityIndicator style={styles.footer} /> : undefined
+          }
           ListEmptyComponent={
-            <EmptyState
-              message={
-                query ? `No patients match “${query.trim()}”.` : `No ${statusLabel} patients.`
-              }
-            />
+            error ? (
+              <View style={styles.errorState}>
+                <EmptyState message={error} />
+                <Button
+                  title="Try again"
+                  variant="secondary"
+                  size="small"
+                  onPress={server.refresh}
+                />
+              </View>
+            ) : loading ? (
+              <EmptyState message="Loading patients…" />
+            ) : (
+              <EmptyState
+                message={
+                  query ? `No patients match “${query.trim()}”.` : `No ${statusLabel} patients.`
+                }
+              />
+            )
           }
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
@@ -234,5 +264,12 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: Spacing.three,
+  },
+  footer: {
+    paddingVertical: Spacing.three,
+  },
+  errorState: {
+    alignItems: 'center',
+    gap: Spacing.two,
   },
 });

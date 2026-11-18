@@ -26,7 +26,8 @@ export default function LoginScreen() {
   const theme = useTheme();
   const biometricUnlock = useAppSelector((state) => state.preferences.biometricUnlock);
   const forgotPasswordSheet = useRef<BottomSheetModal<ForgotPasswordSheetData>>(null);
-  const { control, focusPassword, getEmail, submit, isSubmitting, serverError } = useLoginForm();
+  const { control, focusEmail, focusPassword, getEmail, submit, isSubmitting, serverError } =
+    useLoginForm();
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   return (
@@ -53,6 +54,19 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.form}>
+                <FormTextField
+                  control={control}
+                  name="organization"
+                  label="Organization"
+                  placeholder="e.g. hope"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="organization"
+                  textContentType="organizationName"
+                  returnKeyType="next"
+                  submitBehavior="submit"
+                  onSubmitEditing={focusEmail}
+                />
                 <FormTextField
                   control={control}
                   name="email"

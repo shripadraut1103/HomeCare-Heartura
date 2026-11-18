@@ -22,7 +22,9 @@ import {
   VisitDetailsSheet,
   type VisitDetailsSheetData,
 } from '@/domain/visits/components/VisitDetailsSheet';
-import { useTodaysVisits } from '@/domain/visits/hooks/useVisits';
+import { ScheduleEmptyState } from '@/domain/schedule/components/ScheduleEmptyState';
+import { weekRange } from '@/domain/visits/appointmentMapper';
+import { useTodaysVisits, useVisitsLoader } from '@/domain/visits/hooks/useVisits';
 import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
 import { getGreeting } from '@/utils/dateFormat';
 import { getFirstName } from '@/utils/nameFormat';
@@ -37,6 +39,7 @@ export default function HomeScreen() {
   const notifications = useNotifications();
   const notificationsSheet = useRef<BottomSheetModal<undefined>>(null);
   const visitDetailsSheet = useRef<BottomSheetModal<VisitDetailsSheetData>>(null);
+  const visitsLoad = useVisitsLoader(weekRange(new Date()));
   const todaysVisits = useTodaysVisits();
   const now = new Date();
   const visitCount = todaysVisits.length;
@@ -107,6 +110,16 @@ export default function HomeScreen() {
           keyExtractor={keyExtractor}
           renderItem={renderVisit}
           ListHeaderComponent={listHeader}
+          ListEmptyComponent={
+            visitsLoad.loading || visitsLoad.error ? (
+              <ScheduleEmptyState
+                filtered={false}
+                loading={visitsLoad.loading}
+                error={visitsLoad.error}
+                onRetry={visitsLoad.retry}
+              />
+            ) : undefined
+          }
           ListFooterComponent={listFooter}
           ItemSeparatorComponent={VisitSeparator}
           contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}

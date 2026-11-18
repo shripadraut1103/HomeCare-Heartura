@@ -13,9 +13,10 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { EnvConfig } from '@/config/EnvConfig';
 import { Spacing } from '@/constants/Theme';
 import { IspSheet, type IspSheetData } from '@/domain/patients/components/IspSheet';
-import { usePatient } from '@/domain/patients/hooks/usePatients';
+import { usePatient, usePatientLoader } from '@/domain/patients/hooks/usePatients';
 import { ageFrom, PATIENT_STATUS } from '@/domain/patients/patientList';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -26,6 +27,7 @@ export default function PatientLayout() {
   const barStyle = useFloatingTabBarStyle();
   const { id } = useLocalSearchParams<{ id: string }>();
   const patient = usePatient(id);
+  const { error, retry } = usePatientLoader(id);
   const ispSheet = useRef<BottomSheetModal<IspSheetData>>(null);
 
   if (!patient) {
@@ -34,8 +36,16 @@ export default function PatientLayout() {
         <SafeAreaView edges={['top']}>
           <ScreenHeader title="Patient" />
           <ThemedText themeColor="textSecondary" style={styles.missing}>
-            This patient isn’t in your caseload any more.
+            {error ??
+              (EnvConfig.apiUrl
+                ? 'Loading patient…'
+                : 'This patient isn’t in your caseload any more.')}
           </ThemedText>
+          {error ? (
+            <View style={styles.retry}>
+              <Button title="Try again" variant="secondary" size="small" onPress={retry} />
+            </View>
+          ) : null}
         </SafeAreaView>
       </ThemedView>
     );
@@ -158,6 +168,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     fontWeight: 400,
+  },
+  retry: {
+    alignItems: 'center',
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.three,
   },
   missing: {
     textAlign: 'center',

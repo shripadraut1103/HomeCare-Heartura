@@ -2,7 +2,8 @@ import { combineReducers, type Reducer } from '@reduxjs/toolkit';
 import { persistReducer, type PersistConfig } from 'redux-persist';
 
 import type { AuthState } from '@/domain/auth/interfaces/AuthInterfaces';
-import authReducer from '@/domain/auth/store/AuthReducer';
+import authReducer, { sessionExpired } from '@/domain/auth/store/AuthReducer';
+import { logoutAction } from '@/domain/auth/store/async-actions/AuthAsyncActions';
 import communicationsReducer from '@/domain/communications/store/CommunicationsReducer';
 import notesReducer from '@/domain/notes/store/NotesReducer';
 import patientsReducer from '@/domain/patients/store/PatientsReducer';
@@ -24,7 +25,7 @@ const authPersistConfig: PersistConfig<AuthState> = {
   whitelist: ['isLoggedIn', 'accessToken', 'refreshToken', 'accessExpiresAt', 'refreshExpiresAt'],
 };
 
-export const rootReducer: Reducer<AppState> = combineReducers({
+const appReducer = combineReducers({
   auth: persistReducer(authPersistConfig, authReducer),
   availability: availabilityReducer,
   blockDays: blockDaysReducer,
@@ -37,3 +38,11 @@ export const rootReducer: Reducer<AppState> = combineReducers({
   toast: ToastReducer,
   visits: visitsReducer,
 });
+
+export const rootReducer: Reducer<AppState> = (state, action) =>
+  appReducer(
+    state && (logoutAction.fulfilled.match(action) || sessionExpired.match(action))
+      ? { auth: state.auth, preferences: state.preferences, toast: state.toast }
+      : state,
+    action
+  );

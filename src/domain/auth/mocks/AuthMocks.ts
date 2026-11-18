@@ -1,6 +1,7 @@
 import type { AuthMe, LoginResponse } from '@/domain/auth/interfaces/AuthInterfaces';
 
 export const MOCK_CREDENTIALS = {
+  organization: 'hope',
   email: 'admin@gmail.com',
   password: '1234',
 };
@@ -11,7 +12,8 @@ export const MOCK_USER = {
 };
 
 export const MOCK_ME: AuthMe = {
-  member: { permission_codes: [] },
+  organization: { slug: 'hope', name: 'HomeCare Therapeutics', timezone: 'America/New_York' },
+  member: { id: 'mock-member', permission_codes: [] },
   session_timeout_minutes: 43200,
 };
 
