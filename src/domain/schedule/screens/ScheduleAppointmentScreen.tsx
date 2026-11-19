@@ -1,66 +1,94 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, type ComponentRef } from 'react';
 import { Controller } from 'react-hook-form';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Button } from '@/components/ui/Button';
 import { DICTATION_BUTTON_SIZE, DictationButton } from '@/components/ui/DictationButton';
+import { FormTextField } from '@/components/ui/FormTextField';
 import { Select } from '@/components/ui/Select';
 import { TextField } from '@/components/ui/TextField';
-import { Radius, Spacing } from '@/constants/Theme';
+import { Spacing } from '@/constants/Theme';
 import { ModalFormLayout } from '@/domain/profile/components/ModalFormLayout';
-import { SERVICE_LOCATIONS } from '@/domain/schedule/appointmentOptions';
-import { startOfWeek } from '@/domain/schedule/calendar';
 import { AppointmentDateTime } from '@/domain/schedule/components/AppointmentDateTime';
+import {
+  CheckNotes,
+  ConflictList,
+  UnitsTiles,
+} from '@/domain/schedule/components/BookingCheckSummary';
 import { PatientPicker } from '@/domain/schedule/components/PatientPicker';
 import { RepeatSection } from '@/domain/schedule/components/RepeatSection';
-import {
-  useAppointmentForm,
-  type AppointmentForm,
-} from '@/domain/schedule/hooks/useAppointmentForm';
-import { useTheme } from '@/hooks/useTheme';
-import { formatNumericDate, parseIsoDate } from '@/utils/dateFormat';
+import { useAppointmentForm } from '@/domain/schedule/hooks/useAppointmentForm';
+import { parseIsoDate } from '@/utils/dateFormat';
 
 export default function ScheduleAppointmentScreen() {
-  const { date, patientId } = useLocalSearchParams<{ date?: string; patientId?: string }>();
-  const form = useAppointmentForm(date ? parseIsoDate(date) : undefined, patientId);
+  const { date, patientId, visitId } = useLocalSearchParams<{
+    date?: string;
+    patientId?: string;
+    visitId?: string;
+  }>();
+  const form = useAppointmentForm({
+    date: date ? parseIsoDate(date) : undefined,
+    patientId,
+    visitId,
+  });
   const notesRef = useRef<ComponentRef<typeof TextInput>>(null);
-  const { patient } = form;
+  const { patient, scheduling } = form;
+  const ready = Boolean(patient && form.plan && scheduling.reference);
+  const title = form.isEditing ? 'Edit Appointment' : 'Schedule Appointment';
+  const action = form.needsOverride ? 'Book Anyway' : form.isEditing ? 'Save Changes' : title;
 
   return (
     <ModalFormLayout
-      title="Schedule Appointment"
+      title={title}
       footer={
         <>
           <Button
             title="Cancel"
             variant="secondary"
             style={styles.cancel}
+            disabled={form.saving}
             onPress={() => router.back()}
           />
           <Button
-            title="Schedule Appointment"
+            title={action}
             style={styles.submit}
             disabled={!form.canSubmit}
+            loading={form.saving}
             accessibilityHint={form.canSubmit ? undefined : 'Fill in the required fields first'}
-            onPress={form.submit}
+            onPress={() => form.submit()}
           />
         </>
       }>
+      {!scheduling.reference ? (
+        <View style={styles.field}>
+          {scheduling.error ? (
+            <>
+              <ThemedText themeColor="error" style={styles.hint}>
+                {scheduling.error}
+              </ThemedText>
+              <Button title="Try again" variant="secondary" onPress={scheduling.retry} />
+            </>
+          ) : (
+            <ActivityIndicator />
+          )}
+        </View>
+      ) : null}
+
       <PatientPicker
-        patients={form.patients}
         selected={patient}
         onSelect={form.selectPatient}
-        onClear={form.clearPatient}
-        error={form.errors.patientId?.message}
+        onClear={form.isEditing ? undefined : form.clearPatient}
+        loading={Boolean(form.values.patientId) && !patient}
+        error={form.planError ?? form.errors.patientId?.message}
       />
 
       <View
-        pointerEvents={patient ? 'auto' : 'none'}
-        accessibilityElementsHidden={!patient}
-        importantForAccessibility={patient ? 'auto' : 'no-hide-descendants'}
-        style={[styles.details, !patient && styles.locked]}>
+        pointerEvents={ready ? 'auto' : 'none'}
+        accessibilityElementsHidden={!ready}
+        importantForAccessibility={ready ? 'auto' : 'no-hide-descendants'}
+        style={[styles.details, !ready && styles.locked]}>
         <View style={styles.field}>
           <Controller
             control={form.control}
@@ -69,20 +97,37 @@ export default function ScheduleAppointmentScreen() {
               <Select
                 label="Service location"
                 required
-                options={SERVICE_LOCATIONS}
+                options={form.places}
                 value={field.value}
                 onChange={(value) => form.set('location', value)}
                 error={fieldState.error?.message}
-                disabled={!patient}
+                disabled={!ready}
               />
             )}
           />
-          {patient ? (
+          {ready ? (
             <ThemedText themeColor="textSecondary" style={styles.hint}>
               Pre-filled from the patient profile.
             </ThemedText>
           ) : null}
         </View>
+
+        {form.addresses.length > 1 ? (
+          <Controller
+            control={form.control}
+            name="address"
+            render={({ field, fieldState }) => (
+              <Select
+                label="Address"
+                options={form.addresses}
+                value={field.value}
+                onChange={(value) => form.set('address', value)}
+                error={fieldState.error?.message}
+                disabled={!ready}
+              />
+            )}
+          />
+        ) : null}
 
         <View style={styles.pair}>
           <View style={styles.flex}>
@@ -97,35 +142,96 @@ export default function ScheduleAppointmentScreen() {
                   value={field.value}
                   onChange={form.changeService}
                   error={fieldState.error?.message}
-                  disabled={!patient}
+                  disabled={!ready}
                 />
               )}
             />
           </View>
-          <ProviderField name={form.providerName} />
+          <View style={styles.flex}>
+            <Controller
+              control={form.control}
+              name="provider"
+              render={({ field, fieldState }) => (
+                <Select
+                  label="Provider"
+                  required
+                  options={form.providers}
+                  value={field.value}
+                  onChange={(value) => form.set('provider', value)}
+                  error={fieldState.error?.message}
+                  disabled={!ready || form.providers.length < 2}
+                />
+              )}
+            />
+          </View>
         </View>
 
         <Controller
           control={form.control}
-          name="payer"
+          name="visitType"
           render={({ field, fieldState }) => (
             <Select
-              label="Payer"
+              label="Visit type"
               required
-              options={(patient?.payers ?? []).map((payer) => ({ value: payer, label: payer }))}
+              options={form.visitTypes}
               value={field.value}
-              onChange={(value) => form.set('payer', value)}
+              onChange={(value) => form.set('visitType', value)}
               error={fieldState.error?.message}
-              disabled={!patient}
+              disabled={!ready || form.visitTypes.length < 2}
             />
           )}
         />
 
-        {patient ? <UnitsSummary form={form} /> : null}
+        <View style={styles.field}>
+          <Controller
+            control={form.control}
+            name="payer"
+            render={({ field, fieldState }) => (
+              <Select
+                label="Payer"
+                required
+                options={form.payers}
+                value={field.value}
+                onChange={(value) => form.set('payer', value)}
+                error={fieldState.error?.message}
+                disabled={!ready}
+              />
+            )}
+          />
+          {ready && form.values.service && form.payers.length === 0 ? (
+            <ThemedText themeColor="error" style={styles.hint}>
+              No authorization covers this date and private pay is off for this patient.
+            </ThemedText>
+          ) : null}
+        </View>
+
+        {form.check.result?.units ? <UnitsTiles units={form.check.result.units} /> : null}
 
         <AppointmentDateTime form={form} />
 
-        <RepeatSection form={form} />
+        <CheckNotes
+          result={form.check.result}
+          checking={form.check.checking}
+          error={form.check.error}
+          evvRequired={ready ? form.evvRequired : undefined}
+        />
+
+        {form.needsOverride ? (
+          <>
+            <ConflictList conflicts={form.conflicts} />
+            <FormTextField
+              control={form.control}
+              name="conflictReason"
+              label="Reason for booking anyway"
+              required
+              labelStyle={styles.notesLabel}
+              placeholder="For example: family asked for back-to-back visits"
+              maxLength={500}
+            />
+          </>
+        ) : null}
+
+        {form.isEditing ? null : <RepeatSection form={form} />}
 
         <Controller
           control={form.control}
@@ -158,59 +264,6 @@ export default function ScheduleAppointmentScreen() {
   );
 }
 
-function ProviderField({ name }: { name: string }) {
-  const theme = useTheme();
-
-  return (
-    <View style={[styles.field, styles.flex]}>
-      <ThemedText themeColor="textSecondary" style={styles.label}>
-        Provider
-        <ThemedText themeColor="error">{'  *'}</ThemedText>
-      </ThemedText>
-      <View
-        accessible
-        accessibilityLabel={`Provider, ${name}`}
-        style={[styles.provider, { borderColor: theme.border }]}>
-        <ThemedText themeColor="textSecondary" numberOfLines={1} style={styles.providerName}>
-          {name}
-        </ThemedText>
-      </View>
-    </View>
-  );
-}
-
-function UnitsSummary({ form }: { form: AppointmentForm }) {
-  const theme = useTheme();
-  const units = form.patient?.units;
-  if (!units) return null;
-  const tiles = [
-    { value: `${units.usedThisWeek} of ${units.authorizedPerWeek}`, label: 'This week' },
-    { value: String(units.remainingInclMakeup), label: 'Remaining incl. makeup' },
-  ];
-
-  return (
-    <View style={styles.field}>
-      <ThemedText themeColor="textSecondary" style={styles.label}>
-        {`Units · week of ${formatNumericDate(startOfWeek(form.values.date))}`}
-      </ThemedText>
-      <View style={styles.pair}>
-        {tiles.map((tile) => (
-          <View
-            key={tile.label}
-            accessible
-            accessibilityLabel={`${tile.value} ${tile.label}`}
-            style={[styles.tile, { backgroundColor: theme.surfaceMuted }]}>
-            <ThemedText style={styles.tileValue}>{tile.value}</ThemedText>
-            <ThemedText themeColor="textSecondary" numberOfLines={1} style={styles.tileLabel}>
-              {tile.label}
-            </ThemedText>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   details: {
     gap: Spacing.four,
@@ -220,11 +273,6 @@ const styles = StyleSheet.create({
   },
   field: {
     gap: Spacing.one,
-  },
-  label: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: 500,
   },
   hint: {
     fontSize: 14,
@@ -237,33 +285,6 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
-  },
-  provider: {
-    justifyContent: 'center',
-    minHeight: 50,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Radius.medium,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-  },
-  providerName: {
-    fontSize: 17,
-    lineHeight: 24,
-  },
-  tile: {
-    flex: 1,
-    gap: Spacing.half,
-    padding: Spacing.three,
-    borderRadius: Radius.medium,
-  },
-  tileValue: {
-    fontSize: 20,
-    lineHeight: 26,
-    fontWeight: 600,
-  },
-  tileLabel: {
-    fontSize: 14,
-    lineHeight: 20,
   },
   notesLabel: {
     fontSize: 14,

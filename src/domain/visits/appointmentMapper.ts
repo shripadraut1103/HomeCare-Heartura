@@ -1,6 +1,7 @@
 import { addDays, startOfMonth, startOfWeek } from '@/domain/schedule/calendar';
 import type { ApiAppointment } from '@/domain/visits/interfaces/AppointmentApi';
 import type { Visit, VisitStatus } from '@/domain/visits/interfaces/VisitInterfaces';
+import type { ApiVisitStatusChange } from '@/domain/visits/store/services/VisitServices';
 import { toIsoDate } from '@/utils/dateFormat';
 
 const STATUSES: Record<string, VisitStatus> = {
@@ -11,6 +12,14 @@ const STATUSES: Record<string, VisitStatus> = {
   no_show: 'noShow',
   rescheduled: 'rescheduled',
 };
+
+const API_STATUS: Partial<Record<VisitStatus, ApiVisitStatusChange['status']>> = {
+  scheduled: 'scheduled',
+  cancelled: 'cancelled',
+  noShow: 'no_show',
+};
+
+export const toApiVisitStatus = (status: VisitStatus) => API_STATUS[status];
 
 export function toStartsAt(date: string, time: string) {
   const [year, month, day] = date.split('-').map(Number);
@@ -50,6 +59,18 @@ export function toVisit(appointment: ApiAppointment): Visit {
         : undefined,
     },
     notes: appointment.notes || undefined,
+    booking: {
+      providerId: provider.id,
+      serviceCode: appointment.service_code,
+      visitType: appointment.visit_type,
+      placeOfService: appointment.place_of_service,
+      addressId: appointment.address?.id ?? null,
+      payer: appointment.payer,
+      date: appointment.date,
+      startTime: appointment.start_time.slice(0, 5),
+      notes: appointment.notes,
+      rescheduledTo: appointment.rescheduled_to,
+    },
   };
 }
 

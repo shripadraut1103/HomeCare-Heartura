@@ -1,4 +1,3 @@
-import { nanoid } from '@reduxjs/toolkit';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -6,31 +5,19 @@ import { StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { Button } from '@/components/ui/Button';
 import { DateTimeField } from '@/components/ui/DateTimeField';
-import { Icon } from '@/components/ui/Icon';
+import { FormTextField } from '@/components/ui/FormTextField';
 import { InfoNote } from '@/components/ui/InfoNote';
 import { Select } from '@/components/ui/Select';
-import { Radius, Spacing } from '@/constants/Theme';
-import { usePatientChart, usePatients } from '@/domain/patients/hooks/usePatients';
-import type { Patient } from '@/domain/patients/interfaces/PatientInterfaces';
-import {
-  authorizationFor,
-  payerLabel,
-  unitCheck,
-  unitsForMinutes,
-  VISIT_DURATIONS,
-} from '@/domain/patients/visitUnits';
+import { Spacing } from '@/constants/Theme';
 import { ModalFormLayout } from '@/domain/profile/components/ModalFormLayout';
-import { useProfile } from '@/domain/profile/hooks/useProfile';
-import { findLocation, SERVICE_LOCATIONS } from '@/domain/schedule/appointmentOptions';
-import { startOfWeek } from '@/domain/schedule/calendar';
+import {
+  CheckNotes,
+  ConflictList,
+  UnitsTiles,
+} from '@/domain/schedule/components/BookingCheckSummary';
 import { PatientPicker } from '@/domain/schedule/components/PatientPicker';
-import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
-import { addVisits, removeVisits } from '@/domain/visits/store/VisitsReducer';
-import { useTheme } from '@/hooks/useTheme';
-import { setToastMessage } from '@/store/common-reducer/ToastReducer';
-import { useAppDispatch } from '@/store/hooks';
-import { formatNumericDate, parseIsoDate } from '@/utils/dateFormat';
-import { haptics } from '@/utils/haptics';
+import { useAppointmentForm } from '@/domain/schedule/hooks/useAppointmentForm';
+import { parseIsoDate } from '@/utils/dateFormat';
 
 type VisitFor = 'new' | 'cancelled' | 'rescheduled';
 
@@ -53,100 +40,55 @@ const VISIT_FOR: readonly { value: VisitFor; label: string; hint: string }[] = [
 ];
 
 const DEFAULT_MINUTES = 45;
-const SLOT_MINUTES = 15;
 
-const initialStart = (date: string | undefined) => {
-  const start = new Date();
-  start.setMinutes(Math.floor(start.getMinutes() / SLOT_MINUTES) * SLOT_MINUTES, 0, 0);
-  if (!date) return start;
-  const day = parseIsoDate(date);
-  start.setFullYear(day.getFullYear(), day.getMonth(), day.getDate());
-  return start;
-};
+function durationOptions(rule: { min: number; max: number; step: number }, perUnit: number) {
+  const options = [];
+  for (let minutes = rule.min; minutes <= rule.max; minutes += Math.max(rule.step, 1)) {
+    options.push({
+      value: String(minutes),
+      label: `${minutes} min · ${Math.floor(minutes / Math.max(perUnit, 1))} units`,
+    });
+  }
+  return options;
+}
 
 export default function CreateVisitScreen() {
-  const theme = useTheme();
-  const dispatch = useAppDispatch();
-  const provider = useProfile();
-  const patients = usePatients();
   const { patientId, date } = useLocalSearchParams<{ patientId?: string; date?: string }>();
   const [visitFor, setVisitFor] = useState<VisitFor>('new');
-  const [patient, setPatient] = useState<Patient | undefined>(() =>
-    patients.find((item) => item.id === patientId)
-  );
-  const [location, setLocation] = useState<string | null>(patient?.serviceLocation ?? null);
-  const [serviceId, setServiceId] = useState<string | null>(null);
-  const [start, setStart] = useState(() => initialStart(date));
-  const [minutes, setMinutes] = useState(DEFAULT_MINUTES);
-  const chart = usePatientChart(patient?.id);
+  const form = useAppointmentForm({
+    date: date ? parseIsoDate(date) : undefined,
+    patientId,
+    startNow: true,
+    duration: DEFAULT_MINUTES,
+  });
+  const { patient, scheduling, values } = form;
+  const reference = scheduling.reference;
+  const ready = Boolean(patient && form.plan && reference);
+  const durations = reference
+    ? durationOptions(reference.duration, reference.minutes_per_unit)
+    : [];
 
-  const services = chart?.services.filter((service) => service.status !== 'ended') ?? [];
-  const service = services.find((item) => item.id === serviceId) ?? services[0];
-  const privatePay = service?.payer === 'Private pay';
-  const payer = privatePay
-    ? 'Private pay'
-    : (patient?.payers.find(authorizationFor) ?? patient?.payers[0] ?? '');
-  const authorization = privatePay ? undefined : authorizationFor(payer);
-  const units = patient && authorization ? unitCheck(minutes, patient.units) : null;
-  const evvRequired = findLocation(location)?.label.includes('EVV required') ?? false;
-  const canCreate = Boolean(patient && service && location) && (units?.fits ?? true);
-
-  const selectPatient = (next: Patient) => {
-    setPatient(next);
-    setLocation(next.serviceLocation);
-    setServiceId(null);
-  };
-
-  const setDay = (day: Date) =>
-    setStart(
-      (current) =>
+  const setDay = (day: Date) => {
+    form.changeDate(day);
+    if (values.startTime) {
+      form.set(
+        'startTime',
         new Date(
           day.getFullYear(),
           day.getMonth(),
           day.getDate(),
-          current.getHours(),
-          current.getMinutes()
+          values.startTime.getHours(),
+          values.startTime.getMinutes()
         )
-    );
-
-  const create = () => {
-    if (!patient || !service || !canCreate) return;
-    const place = findLocation(location);
-    const visit: Visit = {
-      id: `visit-${nanoid()}`,
-      patientId: patient.id,
-      patientName: patient.name,
-      patientTag: patient.tag,
-      startsAt: start.toISOString(),
-      durationMinutes: minutes,
-      status: 'scheduled',
-      visitType: 'Daily visit',
-      discipline: service.name,
-      summary: [patient.discipline, 'Daily visit', place?.short].filter(Boolean).join(' · '),
-      providerName: provider.name,
-      location: place?.label ?? '',
-      address: patient.address,
-      phone: patient.phone,
-      guardian: patient.guardian,
-      payer,
-      units: {
-        summary: `${patient.units.usedThisWeek} of ${patient.units.authorizedPerWeek} this week · ${patient.units.remainingInclMakeup} remaining incl. makeup`,
-        detail: `This visit: ${unitsForMinutes(minutes)} units (${minutes} min). Used when the note is saved.`,
-      },
-      notes:
-        visitFor === 'new' ? undefined : VISIT_FOR.find((item) => item.value === visitFor)?.label,
-    };
-    // TODO: link cancelled and rescheduled visits to the appointment they replace once the API exists.
-    dispatch(addVisits([visit]));
-    dispatch(
-      setToastMessage({
-        message: `Visit created for ${patient.name}`,
-        action: { label: 'Undo', onPress: removeVisits({ ids: [visit.id] }) },
-      })
-    );
-    haptics.success();
-    router.back();
+      );
+    }
   };
+
+  // TODO: link makeup and rescheduled visits to the appointment they replace once the API has a field for it.
+  const create = () =>
+    form.submit(
+      visitFor === 'new' ? undefined : VISIT_FOR.find((item) => item.value === visitFor)?.label
+    );
 
   return (
     <ModalFormLayout
@@ -157,17 +99,28 @@ export default function CreateVisitScreen() {
             title="Cancel"
             variant="secondary"
             style={styles.cancel}
+            disabled={form.saving}
             onPress={() => router.back()}
           />
           <Button
-            title="Create Visit"
+            title={form.needsOverride ? 'Create Anyway' : 'Create Visit'}
             style={styles.submit}
-            disabled={!canCreate}
-            accessibilityHint={canCreate ? undefined : 'Fill in the required fields first'}
+            disabled={!form.canSubmit}
+            loading={form.saving}
+            accessibilityHint={form.canSubmit ? undefined : 'Fill in the required fields first'}
             onPress={create}
           />
         </>
       }>
+      {!reference && scheduling.error ? (
+        <View style={styles.field}>
+          <ThemedText themeColor="error" style={styles.hint}>
+            {scheduling.error}
+          </ThemedText>
+          <Button title="Try again" variant="secondary" onPress={scheduling.retry} />
+        </View>
+      ) : null}
+
       <View style={styles.field}>
         <Select
           label="Visit for"
@@ -182,52 +135,63 @@ export default function CreateVisitScreen() {
       </View>
 
       <PatientPicker
-        patients={patients}
         selected={patient}
-        onSelect={selectPatient}
-        onClear={() => setPatient(undefined)}
+        onSelect={form.selectPatient}
+        onClear={form.clearPatient}
+        loading={Boolean(values.patientId) && !patient}
+        error={form.planError ?? form.errors.patientId?.message}
       />
 
       <View
-        pointerEvents={patient ? 'auto' : 'none'}
-        style={[styles.details, !patient && styles.locked]}>
+        pointerEvents={ready ? 'auto' : 'none'}
+        style={[styles.details, !ready && styles.locked]}>
         <View style={styles.pair}>
           <View style={styles.flex}>
             <Select
               label="Service"
-              options={services.map((item) => ({ value: item.id, label: item.name }))}
-              value={service?.id ?? null}
-              onChange={setServiceId}
-              disabled={services.length < 2}
+              required
+              options={form.services}
+              value={values.service}
+              onChange={form.changeService}
+              error={form.errors.service?.message}
+              disabled={form.services.length < 2}
             />
           </View>
-          <View style={[styles.field, styles.flex]}>
-            <ThemedText themeColor="textSecondary" style={styles.label}>
-              Provider
-            </ThemedText>
-            <View
-              accessible
-              accessibilityLabel={`Provider, ${provider.name}`}
-              style={[styles.provider, { borderColor: theme.border }]}>
-              <ThemedText numberOfLines={1} style={styles.providerName}>
-                {provider.name}
-              </ThemedText>
-            </View>
+          <View style={styles.flex}>
+            <Select
+              label="Provider"
+              required
+              options={form.providers}
+              value={values.provider}
+              onChange={(value) => form.set('provider', value)}
+              error={form.errors.provider?.message}
+              disabled={form.providers.length < 2}
+            />
           </View>
         </View>
+
+        <Select
+          label="Visit type"
+          required
+          options={form.visitTypes}
+          value={values.visitType}
+          onChange={(value) => form.set('visitType', value)}
+          disabled={form.visitTypes.length < 2}
+        />
 
         <View style={styles.field}>
           <Select
             label="Service location"
             required
-            options={SERVICE_LOCATIONS}
-            value={location}
-            onChange={setLocation}
+            options={form.places}
+            value={values.location}
+            onChange={(value) => form.set('location', value)}
+            error={form.errors.location?.message}
           />
-          {location ? (
+          {values.location && form.evvRequired !== undefined ? (
             <InfoNote
               text={
-                evvRequired
+                form.evvRequired
                   ? 'EVV required · clock in and out with GPS.'
                   : 'EVV exempt · no clock in needed.'
               }
@@ -237,77 +201,71 @@ export default function CreateVisitScreen() {
 
         <View style={styles.pair}>
           <View style={styles.flex}>
-            <DateTimeField label="Date" mode="date" value={start} onChange={setDay} />
+            <DateTimeField
+              label="Date"
+              mode="date"
+              value={values.date}
+              onChange={setDay}
+              minimumDate={new Date()}
+            />
           </View>
           <View style={styles.flex}>
-            <DateTimeField label="Start time" mode="time" value={start} onChange={setStart} />
+            <DateTimeField
+              label="Start time"
+              mode="time"
+              value={values.startTime}
+              onChange={(time) => form.set('startTime', time)}
+              error={form.errors.startTime?.message}
+            />
           </View>
         </View>
 
         <Select
           label="Duration"
-          options={VISIT_DURATIONS.map((value) => ({
-            value: String(value),
-            label: `${value} min · ${unitsForMinutes(value)} units`,
-          }))}
-          value={String(minutes)}
-          onChange={(value) => setMinutes(Number(value))}
+          required
+          options={durations}
+          value={values.duration || null}
+          onChange={(value) => form.set('duration', value)}
+          error={form.errors.duration?.message}
         />
 
-        <Select
-          label="Payer"
-          options={payer ? [{ value: payer, label: payerLabel(payer) }] : []}
-          value={payer || null}
-          onChange={() => {}}
-          disabled
+        <View style={styles.field}>
+          <Select
+            label="Payer"
+            required
+            options={form.payers}
+            value={values.payer}
+            onChange={(value) => form.set('payer', value)}
+            error={form.errors.payer?.message}
+          />
+          {ready && values.service && form.payers.length === 0 ? (
+            <ThemedText themeColor="error" style={styles.hint}>
+              No authorization covers this date and private pay is off for this patient.
+            </ThemedText>
+          ) : null}
+        </View>
+
+        {form.check.result?.units ? <UnitsTiles units={form.check.result.units} /> : null}
+
+        <CheckNotes
+          result={form.check.result}
+          checking={form.check.checking}
+          error={form.check.error}
+          evvRequired={undefined}
         />
 
-        {patient && units && authorization ? (
-          <View style={styles.field}>
-            <ThemedText themeColor="textSecondary" style={styles.label}>
-              Authorization {authorization} · week of {formatNumericDate(startOfWeek(start))}
-            </ThemedText>
-            <View style={styles.pair}>
-              <View
-                accessible
-                accessibilityLabel={`${patient.units.usedThisWeek} of ${patient.units.authorizedPerWeek} this week`}
-                style={[styles.tile, { backgroundColor: theme.surfaceMuted }]}>
-                <ThemedText style={styles.tileValue}>
-                  {patient.units.usedThisWeek} of {patient.units.authorizedPerWeek}
-                </ThemedText>
-                <ThemedText themeColor="textSecondary" style={styles.tileLabel}>
-                  This week
-                </ThemedText>
-              </View>
-              <View
-                accessible
-                accessibilityLabel={`${units.available} remaining including ${units.makeup} makeup`}
-                style={[styles.tile, { backgroundColor: theme.surfaceMuted }]}>
-                <ThemedText style={styles.tileValue}>{units.available}</ThemedText>
-                <ThemedText themeColor="textSecondary" style={styles.tileLabel}>
-                  Remaining incl. makeup ({units.makeup})
-                </ThemedText>
-              </View>
-            </View>
-            <ThemedText themeColor="primary" style={styles.summary}>
-              {patient.units.usedThisWeek} of {patient.units.authorizedPerWeek} this week ·{' '}
-              {units.available} remaining incl. makeup
-            </ThemedText>
-            {!units.fits ? (
-              <View style={styles.warning}>
-                <Icon
-                  name={{ ios: 'lock', android: 'lock' }}
-                  size={18}
-                  color={theme.textSecondary}
-                />
-                <ThemedText themeColor="textSecondary" style={styles.warningText}>
-                  This visit needs {units.needed} units but only {units.available}{' '}
-                  {units.available === 1 ? 'is' : 'are'} available now, and units can’t be used
-                  before the week they’re released. Shorten it.
-                </ThemedText>
-              </View>
-            ) : null}
-          </View>
+        {form.needsOverride ? (
+          <>
+            <ConflictList conflicts={form.conflicts} />
+            <FormTextField
+              control={form.control}
+              name="conflictReason"
+              label="Reason for booking anyway"
+              required
+              placeholder="For example: family asked for back-to-back visits"
+              maxLength={500}
+            />
+          </>
         ) : null}
       </View>
     </ModalFormLayout>
@@ -330,11 +288,6 @@ const styles = StyleSheet.create({
   field: {
     gap: Spacing.one + Spacing.half,
   },
-  label: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: 500,
-  },
   hint: {
     fontSize: 14,
     lineHeight: 20,
@@ -346,48 +299,5 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
-  },
-  provider: {
-    justifyContent: 'center',
-    minHeight: 50,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Radius.medium,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-  },
-  providerName: {
-    fontSize: 17,
-    lineHeight: 24,
-  },
-  tile: {
-    flex: 1,
-    gap: Spacing.half,
-    padding: Spacing.three,
-    borderRadius: Radius.medium,
-  },
-  tileValue: {
-    fontSize: 26,
-    lineHeight: 32,
-    fontWeight: 700,
-  },
-  tileLabel: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: 400,
-  },
-  summary: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: 600,
-  },
-  warning: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-  },
-  warningText: {
-    flex: 1,
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: 400,
   },
 });

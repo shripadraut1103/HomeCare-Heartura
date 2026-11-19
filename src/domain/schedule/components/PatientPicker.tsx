@@ -1,50 +1,34 @@
 import { useRef, useState, type ComponentRef } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
 import { Pill } from '@/components/ui/Pill';
 import { Radius, Shadows, Spacing } from '@/constants/Theme';
-import type { Patient } from '@/domain/patients/interfaces/PatientInterfaces';
+import { describePatient, isProspect } from '@/domain/schedule/bookingMapper';
+import { usePatientSearch } from '@/domain/schedule/hooks/useBooking';
+import type { ApiPatientOption } from '@/domain/schedule/interfaces/BookingApi';
 import { useTheme } from '@/hooks/useTheme';
-import { formatNumericDate, parseIsoDate } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
 
-const MAX_RESULTS = 6;
-
-const describe = (patient: Patient) =>
-  `DOB ${formatNumericDate(parseIsoDate(patient.dateOfBirth))} · ${patient.discipline}`;
-
-const matches = (patient: Patient, query: string) => {
-  const needle = query.trim().toLowerCase();
-  if (!needle) return true;
-  const dob = formatNumericDate(parseIsoDate(patient.dateOfBirth));
-  return patient.name.toLowerCase().includes(needle) || dob.includes(needle);
-};
-
 type PatientPickerProps = {
-  patients: readonly Patient[];
-  selected: Patient | undefined;
-  onSelect: (patient: Patient) => void;
-  onClear: () => void;
+  selected: ApiPatientOption | undefined;
+  onSelect: (patient: ApiPatientOption) => void;
+  onClear?: () => void;
+  loading?: boolean;
   error?: string;
 };
 
-export function PatientPicker({
-  patients,
-  selected,
-  onSelect,
-  onClear,
-  error,
-}: PatientPickerProps) {
+export function PatientPicker({ selected, onSelect, onClear, loading, error }: PatientPickerProps) {
   const theme = useTheme();
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
-  const results = patients.filter((patient) => matches(patient, query)).slice(0, MAX_RESULTS);
+  const open = !selected && !loading && (focused || query.length > 0);
+  const { results, searching, error: searchError } = usePatientSearch(query, open);
 
-  const choose = (patient: Patient) => {
+  const choose = (patient: ApiPatientOption) => {
     haptics.selection();
     setQuery('');
     inputRef.current?.blur();
@@ -54,7 +38,7 @@ export function PatientPicker({
 
   const change = () => {
     haptics.selection();
-    onClear();
+    onClear?.();
     requestAnimationFrame(() => inputRef.current?.focus());
   };
 
@@ -68,15 +52,24 @@ export function PatientPicker({
       {selected ? (
         <View style={[styles.selected, { backgroundColor: theme.surfaceMuted }]}>
           <PatientIdentity patient={selected} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Change patient, ${selected.name} selected`}
-            hitSlop={8}
-            onPress={change}>
-            <ThemedText themeColor="accent" style={styles.change}>
-              Change
-            </ThemedText>
-          </Pressable>
+          {onClear ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Change patient, ${selected.name} selected`}
+              hitSlop={8}
+              onPress={change}>
+              <ThemedText themeColor="accent" style={styles.change}>
+                Change
+              </ThemedText>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : loading ? (
+        <View style={[styles.selected, { backgroundColor: theme.surfaceMuted }]}>
+          <ActivityIndicator color={theme.textSecondary} />
+          <ThemedText themeColor="textSecondary" style={styles.meta}>
+            Loading patient…
+          </ThemedText>
         </View>
       ) : (
         <>
@@ -95,34 +88,42 @@ export function PatientPicker({
             />
             <TextInput
               ref={inputRef}
-              accessibilityLabel="Search patient by name or date of birth"
+              accessibilityLabel="Search patient by name, MRN or date of birth"
               value={query}
               onChangeText={setQuery}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              placeholder="Search patient by name or DOB"
+              placeholder="Search patient by name, MRN or DOB"
               placeholderTextColor={theme.textSecondary}
               autoCorrect={false}
               returnKeyType="search"
               style={[styles.searchInput, { color: theme.text }]}
             />
           </View>
-          {focused || query ? (
+          {open ? (
             <View
               style={[
                 styles.results,
                 { backgroundColor: theme.background, borderColor: theme.border },
               ]}>
-              {results.length === 0 ? (
+              {searchError ? (
+                <ThemedText themeColor="error" style={styles.noResults}>
+                  {searchError}
+                </ThemedText>
+              ) : results.length === 0 ? (
                 <ThemedText themeColor="textSecondary" style={styles.noResults}>
-                  No patients match “{query.trim()}”.
+                  {searching
+                    ? 'Searching…'
+                    : query.trim()
+                      ? `No patients match “${query.trim()}”.`
+                      : 'No patients to book.'}
                 </ThemedText>
               ) : (
                 results.map((patient, index) => (
                   <Pressable
                     key={patient.id}
                     accessibilityRole="button"
-                    accessibilityLabel={`${patient.name}, ${describe(patient)}${patient.isNew ? ', new' : ''}`}
+                    accessibilityLabel={`${patient.name}, ${describePatient(patient)}${isProspect(patient.status) ? ', prospect' : ''}`}
                     onPress={() => choose(patient)}
                     style={({ pressed }) => [
                       styles.result,
@@ -149,7 +150,7 @@ export function PatientPicker({
   );
 }
 
-function PatientIdentity({ patient }: { patient: Patient }) {
+function PatientIdentity({ patient }: { patient: ApiPatientOption }) {
   return (
     <View style={styles.identity}>
       <Avatar name={patient.name} />
@@ -158,12 +159,12 @@ function PatientIdentity({ patient }: { patient: Patient }) {
           <ThemedText numberOfLines={1} style={styles.name}>
             {patient.name}
           </ThemedText>
-          {patient.isNew ? (
-            <Pill label="New" color="textSecondary" backgroundColor="toneBlueBg" dot />
+          {isProspect(patient.status) ? (
+            <Pill label="Prospect" color="textSecondary" backgroundColor="toneBlueBg" dot />
           ) : null}
         </View>
         <ThemedText themeColor="textSecondary" style={styles.meta}>
-          {describe(patient)}
+          {describePatient(patient)}
         </ThemedText>
       </View>
     </View>

@@ -1,3 +1,5 @@
+import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
+
 export interface IndividualServicePlan {
   patientId: string;
   planStart: string;
@@ -11,7 +13,7 @@ export interface IndividualServicePlan {
 }
 
 export type PatientStatus =
-  'active' | 'suspended' | 'inactive' | 'prospect' | 'deniedServices' | 'discharged';
+  'active' | 'suspended' | 'inactive' | 'prospect' | 'request' | 'denied' | 'discharged';
 
 export interface Patient {
   id: string;
@@ -19,11 +21,13 @@ export interface Patient {
   tag: string;
   code: string;
   status: PatientStatus;
+  statusLabel?: string;
   medicaidId?: string;
   dateOfBirth: string;
   discipline: string;
   isNew?: boolean;
   serviceLocation: string;
+  locationLabel?: string;
   payers: readonly string[];
   address: string;
   phone: string;
@@ -33,16 +37,22 @@ export interface Patient {
 
 export type PatientSort = 'name' | 'age';
 
-export type ServiceStatus = 'active' | 'privatePay' | 'onHold' | 'ended';
-
 export interface PatientService {
   id: string;
+  code?: string;
   name: string;
   start: string;
   end: string;
-  status: ServiceStatus;
+  status: string;
+  statusLabel?: string;
   payer: string;
-  units?: { used: number; total: number; accrued: number; missed: number; makeup: number };
+  units?: {
+    used: number;
+    total: number | null;
+    accrued: number | null;
+    missed: number;
+    makeup: number | null;
+  };
   team: readonly string[];
 }
 
@@ -59,6 +69,7 @@ export interface Diagnosis {
   status: DiagnosisStatus;
   onset?: string;
   notedBy?: string;
+  version?: number;
 }
 
 export type AllergySeverity = 'mild' | 'moderate' | 'severe';
@@ -74,6 +85,7 @@ export interface Allergy {
   status: AllergyStatus;
   onset?: string;
   recordedBy?: string;
+  version?: number;
 }
 
 export interface GroupHome {
@@ -90,6 +102,7 @@ export interface ChartNote {
   author: string;
   date: string;
   critical?: boolean;
+  version?: number;
 }
 
 export type CoverageLevel = 'primary' | 'secondary' | 'tertiary';
@@ -109,20 +122,23 @@ export interface InsurancePlan {
   cardBack?: string;
 }
 
-export type DocumentStatus = 'current' | 'signed' | 'onFile' | 'superseded';
+export type DocumentStatus =
+  'current' | 'received' | 'pending' | 'signed' | 'onFile' | 'superseded';
 
 export interface PatientDocument {
   id: string;
   title: string;
   kind: string;
   author: string;
-  status: DocumentStatus;
+  status: DocumentStatus | string;
+  statusLabel?: string;
   date: string;
   documentDate?: string;
   section?: string;
   fileName?: string;
   mimeType?: string;
   uri?: string;
+  version?: number;
 }
 
 export type HistoryCategory = 'surgical' | 'medical' | 'family' | 'social';
@@ -141,6 +157,7 @@ export interface HistoryEntry {
   detail?: string;
   summary?: string;
   note?: string;
+  version?: number;
 }
 
 export type RecordKind = 'daily' | 'evaluation' | 'carePlan' | 'progress' | 'discharge';
@@ -177,7 +194,7 @@ export interface ChartRecord {
   values?: Record<string, string | readonly string[]>;
 }
 
-export type IncidentStatus = 'open' | 'closed';
+export type IncidentStatus = 'open' | 'acknowledged' | 'closed';
 
 export interface PatientIncident {
   id: string;
@@ -192,6 +209,8 @@ export interface PatientIncident {
   actionTaken?: string;
   status?: IncidentStatus;
   notifyOffice?: boolean;
+  comment?: string;
+  version?: number;
 }
 
 export interface PatientChart {
@@ -199,10 +218,12 @@ export interface PatientChart {
   sex: string;
   language: string;
   dddId: string;
-  eligibility: { payer: string; eligible: boolean };
+  eligibility: { payer: string; eligible: boolean | null; status?: string; label?: string };
   guardian: string;
   groupHome?: GroupHome;
-  secondAddress?: string;
+  addresses?: readonly { label: string; line: string }[];
+  providers?: readonly { name: string; discipline: string }[];
+  header?: Partial<Patient>;
   phones: readonly string[];
   email?: string;
   allergies: readonly Allergy[];
@@ -214,7 +235,28 @@ export interface PatientChart {
   documents: readonly PatientDocument[];
   history: readonly HistoryEntry[];
   incidents: readonly PatientIncident[];
+  appointments?: readonly Visit[];
   records: readonly ChartRecord[];
+}
+
+export type HistoryResource = `history:${HistoryCategory}`;
+
+export type PatientResource =
+  | 'chart'
+  | 'diagnoses'
+  | 'allergies'
+  | 'notes'
+  | 'incidents'
+  | 'coverages'
+  | 'documents'
+  | 'appointments'
+  | HistoryResource;
+
+export interface ResourceStatus {
+  loading: boolean;
+  loaded: boolean;
+  error: string | null;
+  stale?: boolean;
 }
 
 export interface PatientListState {
@@ -231,4 +273,5 @@ export interface PatientsState {
   list: PatientListState;
   detailError: string | null;
   charts: Record<string, PatientChart>;
+  resources: Record<string, Partial<Record<PatientResource, ResourceStatus>>>;
 }

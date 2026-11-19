@@ -7,68 +7,51 @@ import { DateTimeField } from '@/components/ui/DateTimeField';
 import { Select } from '@/components/ui/Select';
 import { TextField } from '@/components/ui/TextField';
 import { Radius, Spacing } from '@/constants/Theme';
-import {
-  ALLERGY_STATUS,
-  ALLERGY_TYPES,
-  optionsOf,
-  SEVERITY,
-} from '@/domain/patients/clinicalStyles';
-import type {
-  AllergySeverity,
-  AllergyStatus,
-} from '@/domain/patients/interfaces/PatientInterfaces';
-import { addAllergy } from '@/domain/patients/store/PatientsReducer';
+import { ALLERGY_KINDS, optionsOf, SEVERITY } from '@/domain/patients/clinicalStyles';
+import { useChartActions } from '@/domain/patients/hooks/useChartActions';
+import type { AllergySeverity } from '@/domain/patients/interfaces/PatientInterfaces';
 import { ModalFormLayout } from '@/domain/profile/components/ModalFormLayout';
-import { useProfile } from '@/domain/profile/hooks/useProfile';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
-import { formatNumericDate } from '@/utils/dateFormat';
+import { toIsoDate } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
 
-type AllergyType = (typeof ALLERGY_TYPES)[number];
+type AllergyKind = (typeof ALLERGY_KINDS)[number]['value'];
 
-const TYPE_OPTIONS = ALLERGY_TYPES.map((value) => ({ value, label: value }));
 const SEVERITY_OPTIONS = optionsOf(SEVERITY);
-const STATUS_OPTIONS = optionsOf(ALLERGY_STATUS);
 
 export default function AddAllergyScreen() {
   const dispatch = useAppDispatch();
   const { patientId } = useLocalSearchParams<{ patientId: string }>();
-  const profile = useProfile();
+  const actions = useChartActions(patientId);
   const [name, setName] = useState('');
-  const [kind, setKind] = useState<AllergyType>('Medication');
+  const [kind, setKind] = useState<AllergyKind>('medication');
   const [reaction, setReaction] = useState('');
   const [severity, setSeverity] = useState<AllergySeverity>('moderate');
-  const [onset, setOnset] = useState(() => new Date());
-  const [status, setStatus] = useState<AllergyStatus>('active');
-  const [recordedBy, setRecordedBy] = useState(profile.name);
+  const [onset, setOnset] = useState<Date | null>(() => new Date());
+  const [saving, setSaving] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const isDirty = [name, reaction].some((value) => value.trim() !== '');
   const { leave } = useUnsavedChangesGuard(isDirty, 'This allergy hasn’t been saved.');
 
-  const save = () => {
+  const save = async () => {
     if (!name.trim()) {
       setShowErrors(true);
       haptics.error();
       return;
     }
-    // TODO: save to the patient chart API once it exists.
-    dispatch(
-      addAllergy({
-        patientId,
-        allergy: {
-          name: name.trim(),
-          kind,
-          reaction: reaction.trim(),
-          severity,
-          status,
-          onset: formatNumericDate(onset),
-          recordedBy: recordedBy.trim() || undefined,
-        },
-      })
-    );
-    haptics.success();
+    setSaving(true);
+    const saved = await actions.addAllergy({
+      substance: name.trim(),
+      kind,
+      reaction: reaction.trim(),
+      severity,
+      onset: onset ? toIsoDate(onset) : null,
+      status: 'active',
+    });
+    setSaving(false);
+    if (!saved) return;
     dispatch(setToastMessage({ message: 'Allergy added' }));
     leave();
   };
@@ -84,7 +67,13 @@ export default function AddAllergyScreen() {
             style={styles.cancel}
             onPress={() => router.back()}
           />
-          <Button title="Save" style={styles.save} onPress={save} />
+          <Button
+            title="Save"
+            style={styles.save}
+            loading={saving}
+            disabled={saving}
+            onPress={() => void save()}
+          />
         </>
       }>
       <TextField
@@ -95,7 +84,7 @@ export default function AddAllergyScreen() {
         error={showErrors && !name.trim() ? 'Required' : undefined}
         autoCapitalize="sentences"
       />
-      <Select label="Type" options={TYPE_OPTIONS} value={kind} onChange={setKind} />
+      <Select label="Type" options={ALLERGY_KINDS} value={kind} onChange={setKind} />
       <TextField
         label="Reaction"
         value={reaction}
@@ -105,9 +94,13 @@ export default function AddAllergyScreen() {
         style={styles.multiline}
       />
       <Select label="Severity" options={SEVERITY_OPTIONS} value={severity} onChange={setSeverity} />
-      <DateTimeField label="Onset" mode="date" value={onset} onChange={setOnset} />
-      <Select label="Status" options={STATUS_OPTIONS} value={status} onChange={setStatus} />
-      <TextField label="Recorded by" value={recordedBy} onChangeText={setRecordedBy} />
+      <DateTimeField
+        label="Onset"
+        mode="date"
+        value={onset}
+        onChange={setOnset}
+        onClear={() => setOnset(null)}
+      />
     </ModalFormLayout>
   );
 }

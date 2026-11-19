@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ThemedText } from '@/components/ThemedText';
 import { Avatar } from '@/components/ui/Avatar';
 import { Icon } from '@/components/ui/Icon';
+import { Pill } from '@/components/ui/Pill';
 import { Radius, Shadows, Spacing } from '@/constants/Theme';
 import { PatientStatusPill } from '@/domain/patients/components/PatientStatusPill';
 import type { Patient } from '@/domain/patients/interfaces/PatientInterfaces';
@@ -18,7 +19,7 @@ export function PatientCard({ patient, onPress }: PatientCardProps) {
   const theme = useTheme();
   const tone = avatarTone(patient.name);
   const summary = patientSummary(patient);
-  const location = locationLabel(patient.serviceLocation);
+  const location = patient.locationLabel ?? locationLabel(patient.serviceLocation);
 
   return (
     <Pressable
@@ -42,7 +43,10 @@ export function PatientCard({ patient, onPress }: PatientCardProps) {
             <ThemedText numberOfLines={1} style={styles.name}>
               {patient.name}
             </ThemedText>
-            <PatientStatusPill status={patient.status} />
+            <PatientStatusPill patient={patient} />
+            {patient.isNew ? (
+              <Pill label="New patient" color="textSecondary" backgroundColor="toneBlueBg" dot />
+            ) : null}
           </View>
           <ThemedText themeColor="textSecondary" numberOfLines={1} style={styles.summary}>
             {summary}

@@ -9,7 +9,7 @@ import { Spacing } from '@/constants/Theme';
 import { DetailGrid, ExpandableRow, ROW_ACCENTS } from '@/domain/patients/components/ExpandableRow';
 import { PatientCardShell } from '@/domain/patients/components/PatientCardShell';
 import type { PatientDocument } from '@/domain/patients/interfaces/PatientInterfaces';
-import { DOCUMENT_STATUS } from '@/domain/patients/patientDocuments';
+import { documentStatusPill } from '@/domain/patients/patientDocuments';
 import { useTheme } from '@/hooks/useTheme';
 
 const COLLAPSED_DOCUMENTS = 4;
@@ -46,7 +46,7 @@ export function DocumentList({ documents, onOpenDetails }: DocumentListProps) {
   return (
     <PatientCardShell>
       {visible.map((document, index) => {
-        const status = DOCUMENT_STATUS[document.status];
+        const status = documentStatusPill(document);
         return (
           <ExpandableRow
             key={document.id}

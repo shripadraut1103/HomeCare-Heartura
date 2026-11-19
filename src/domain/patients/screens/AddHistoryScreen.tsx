@@ -12,17 +12,13 @@ import type {
   ConditionStatus,
   HistoryCategory,
 } from '@/domain/patients/interfaces/PatientInterfaces';
-import {
-  HISTORY_CATEGORIES,
-  HISTORY_LABELS,
-  socialSummary,
-} from '@/domain/patients/patientHistory';
-import { addHistoryEntry } from '@/domain/patients/store/PatientsReducer';
+import { useChartActions } from '@/domain/patients/hooks/useChartActions';
+import { HISTORY_CATEGORIES, HISTORY_LABELS } from '@/domain/patients/patientHistory';
 import { ModalFormLayout } from '@/domain/profile/components/ModalFormLayout';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
-import { formatNumericDate } from '@/utils/dateFormat';
+import { toIsoDate } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
 
 const TITLE_LABEL: Record<HistoryCategory, string> = {
@@ -41,8 +37,11 @@ export default function AddHistoryScreen() {
   const dispatch = useAppDispatch();
   const params = useLocalSearchParams<{ patientId: string; category?: string }>();
   const category = isCategory(params.category) ? params.category : 'surgical';
+  const actions = useChartActions(params.patientId);
+  const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState<Date | null>(null);
+  const isSocial = category === 'social';
+  const [date, setDate] = useState<Date | null>(() => (isSocial ? new Date() : null));
   const [facility, setFacility] = useState('');
   const [status, setStatus] = useState<ConditionStatus>('active');
   const [relative, setRelative] = useState('');
@@ -52,35 +51,35 @@ export default function AddHistoryScreen() {
   const [showErrors, setShowErrors] = useState(false);
   const label = HISTORY_LABELS[category].toLowerCase();
   const isDirty =
-    [title, facility, relative, onsetAge, detail, note].some(Boolean) || date !== null;
+    [title, facility, relative, onsetAge, detail, note].some(Boolean) ||
+    (!isSocial && date !== null);
   const { leave } = useUnsavedChangesGuard(isDirty, `This ${label} history hasn’t been saved.`);
 
-  const save = () => {
+  const save = async () => {
     if (!title.trim()) {
       setShowErrors(true);
       haptics.error();
       return;
     }
-    const clean = (value: string) => value.trim() || undefined;
-    // TODO: save to the patient history API once it exists.
-    dispatch(
-      addHistoryEntry({
-        patientId: params.patientId,
-        entry: {
-          category,
-          title: title.trim(),
-          date: date ? formatNumericDate(date) : undefined,
-          facility: category === 'surgical' ? clean(facility) : undefined,
-          status: category === 'medical' ? status : undefined,
-          relative: category === 'family' ? clean(relative) : undefined,
-          onsetAge: category === 'family' ? clean(onsetAge) : undefined,
-          detail: category === 'social' ? clean(detail) : undefined,
-          summary: category === 'social' ? socialSummary(detail.trim()) : undefined,
-          note: clean(note),
-        },
-      })
-    );
-    haptics.success();
+    const age = Number.parseInt(onsetAge, 10);
+    setSaving(true);
+    const saved = await actions.addHistory({
+      kind: category,
+      name: title.trim(),
+      date: isSocial
+        ? toIsoDate(date ?? new Date())
+        : date && (category === 'surgical' || category === 'medical')
+          ? toIsoDate(date)
+          : null,
+      facility: category === 'surgical' ? facility.trim() : '',
+      status: category === 'medical' ? status : '',
+      relative: category === 'family' ? relative.trim() : '',
+      onset_age: category === 'family' && Number.isFinite(age) ? age : null,
+      detail: category === 'social' ? detail.trim() : '',
+      note: note.trim(),
+    });
+    setSaving(false);
+    if (!saved) return;
     dispatch(setToastMessage({ message: `${HISTORY_LABELS[category]} history added` }));
     leave();
   };
@@ -96,7 +95,13 @@ export default function AddHistoryScreen() {
             style={styles.cancel}
             onPress={() => router.back()}
           />
-          <Button title="Save" style={styles.save} onPress={save} />
+          <Button
+            title="Save"
+            style={styles.save}
+            loading={saving}
+            disabled={saving}
+            onPress={() => void save()}
+          />
         </>
       }>
       <TextField
@@ -155,6 +160,10 @@ export default function AddHistoryScreen() {
             />
           </View>
         </View>
+      ) : null}
+
+      {isSocial ? (
+        <DateTimeField label="Date" required mode="date" value={date} onChange={setDate} />
       ) : null}
 
       {category === 'social' ? (

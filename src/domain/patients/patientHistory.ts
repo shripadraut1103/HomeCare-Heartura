@@ -45,7 +45,10 @@ export function historyView(entry: HistoryEntry): HistoryView {
               { label: 'Relative', value: entry.relative },
               { label: 'Onset age', value: entry.onsetAge },
             ])
-          : present([{ label: 'Detail', value: entry.detail }]);
+          : present([
+              { label: 'Date', value: entry.date },
+              { label: 'Detail', value: entry.detail },
+            ]);
 
   const subtitle =
     entry.category === 'surgical'

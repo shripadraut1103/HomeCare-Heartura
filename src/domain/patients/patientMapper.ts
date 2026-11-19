@@ -7,13 +7,13 @@ import type {
 } from '@/domain/patients/interfaces/PatientInterfaces';
 import type { StatusFilter } from '@/domain/patients/patientList';
 
-// TODO: confirm both lists once the backend shares its status and setting values.
 const STATUSES: Record<string, PatientStatus> = {
   active: 'active',
   suspended: 'suspended',
   inactive: 'inactive',
   prospect: 'prospect',
-  denied_services: 'deniedServices',
+  request: 'request',
+  denied: 'denied',
   discharged: 'discharged',
 };
 
@@ -45,16 +45,17 @@ export function toPatient(api: ApiPatient): Patient {
   return {
     id: api.id,
     name: `${api.first_name} ${api.last_name}`.trim(),
-    tag: '',
+    tag: api.mrn,
     code: api.mrn,
     status: STATUSES[api.status] ?? 'inactive',
+    statusLabel: STATUSES[api.status] ? undefined : api.status_label || api.status,
     medicaidId: api.medicaid_id || undefined,
     dateOfBirth: api.dob,
     discipline:
       api.services.map((service) => DISCIPLINES[service]?.short ?? service).join(' · ') ||
       api.services_label,
     serviceLocation: SETTINGS[api.location?.setting ?? ''] ?? api.location?.setting ?? '',
-    // Not in GET /api/patients/: the screens show these as not recorded until the API adds them.
+    locationLabel: api.service_location?.label || undefined,
     payers: [],
     address: '',
     phone: '',
@@ -62,38 +63,58 @@ export function toPatient(api: ApiPatient): Patient {
   };
 }
 
-/** The chart fields GET /api/patients/{id}/ can fill; the rest wait for `/chart/` and sub-resources. */
-export function toChart(api: ApiPatient, existing?: PatientChart): PatientChart {
-  const services: PatientService[] = api.services.map((service) => ({
-    id: `${api.id}-${service}`,
-    name: DISCIPLINES[service]?.name ?? service,
-    start: '',
-    end: '',
-    status: 'active',
-    payer: '',
-    team: api.providers
-      .filter((provider) => provider.discipline === service)
+export const emptyChart = (patientId: string): PatientChart => ({
+  patientId,
+  sex: '',
+  language: '',
+  dddId: '',
+  guardian: '',
+  phones: [],
+  allergies: [],
+  insurance: { primary: '' },
+  insurancePlans: [],
+  eligibility: { payer: '', eligible: null },
+  diagnoses: [],
+  services: [],
+  notes: [],
+  documents: [],
+  history: [],
+  incidents: [],
+  records: [],
+});
+
+export const serviceName = (code: string) => DISCIPLINES[code]?.name ?? code;
+
+export const withTeams = (
+  services: readonly PatientService[],
+  providers: readonly { name: string; discipline: string }[] = []
+): PatientService[] =>
+  services.map((service) => ({
+    ...service,
+    team: providers
+      .filter((provider) => provider.discipline === service.code)
       .map((provider) => provider.name),
   }));
+
+export function toChart(api: ApiPatient, existing?: PatientChart): PatientChart {
+  const services: readonly PatientService[] = existing?.services.length
+    ? existing.services
+    : api.services.map((code) => ({
+        id: `${api.id}-${code}`,
+        code,
+        name: serviceName(code),
+        start: '',
+        end: '',
+        status: 'active',
+        payer: '',
+        team: [],
+      }));
   return {
-    patientId: api.id,
-    sex: '',
-    language: '',
-    guardian: '',
-    phones: [],
-    allergies: [],
-    insurance: { primary: '' },
-    insurancePlans: [],
-    eligibility: { payer: '', eligible: false },
-    diagnoses: [],
-    notes: [],
-    documents: [],
-    history: [],
-    incidents: [],
-    records: [],
+    ...emptyChart(api.id),
     ...existing,
     dddId: api.ddd_id,
-    services,
+    providers: api.providers,
+    services: withTeams(services, api.providers),
     groupHome: api.group_home
       ? {
           agency: existing?.groupHome?.agency ?? '',

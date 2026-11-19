@@ -13,7 +13,7 @@ export type RepeatRule = {
 };
 
 export const NEVER_HORIZON_DAYS = 365;
-export const MAX_OCCURRENCES = 500;
+export const MAX_OCCURRENCES = 366;
 
 export function buildOccurrences(start: Date, rule: RepeatRule): Date[] {
   const first = startOfDay(start);

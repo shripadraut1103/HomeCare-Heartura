@@ -75,7 +75,8 @@ export default function PatientLayout() {
             </ThemedText>
             <ThemedText themeColor="textSecondary" numberOfLines={1} style={styles.meta}>
               {ageFrom(patient.dateOfBirth)} yrs • {patient.code} •{' '}
-              {PATIENT_STATUS[patient.status].label}
+              {patient.statusLabel ?? PATIENT_STATUS[patient.status].label}
+              {patient.isNew ? ' • New patient' : ''}
             </ThemedText>
           </View>
           <Button

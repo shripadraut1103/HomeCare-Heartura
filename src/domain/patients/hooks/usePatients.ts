@@ -3,15 +3,30 @@ import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
 import { EnvConfig } from '@/config/EnvConfig';
-import type { Patient, PatientChart } from '@/domain/patients/interfaces/PatientInterfaces';
+import type {
+  HistoryCategory,
+  Patient,
+  PatientChart,
+  PatientResource,
+} from '@/domain/patients/interfaces/PatientInterfaces';
 import { toApiStatus } from '@/domain/patients/patientMapper';
 import type { StatusFilter } from '@/domain/patients/patientList';
 import {
+  fetchAllergiesAction,
+  fetchAppointmentsAction,
+  fetchCoveragesAction,
+  fetchDiagnosesAction,
+  fetchDocumentsAction,
+  fetchHistoryAction,
+  fetchIncidentsAction,
+  fetchNotesAction,
   fetchPatientAction,
+  fetchPatientChartAction,
   fetchPatientsAction,
 } from '@/domain/patients/store/async-actions/PatientAsyncActions';
+import { refreshPatient } from '@/domain/patients/store/PatientsReducer';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import type { RootState } from '@/store/storeConfig';
+import type { AppDispatch, RootState } from '@/store/storeConfig';
 
 const SEARCH_DELAY_MS = 350;
 const apiMode = () => Boolean(EnvConfig.apiUrl);
@@ -53,7 +68,6 @@ function useDebounced<T>(value: T, delay: number) {
   return debounced;
 }
 
-/** API mode: one server page at a time, searched and filtered by the backend. */
 export function usePatientList(query: string, status: StatusFilter) {
   const dispatch = useAppDispatch();
   const patients = useAppSelector(selectListPatients);
@@ -83,15 +97,84 @@ export function usePatientList(query: string, status: StatusFilter) {
   };
 }
 
+function loadResource(dispatch: AppDispatch, patientId: string, resource: PatientResource) {
+  const arg = { patientId };
+  switch (resource) {
+    case 'chart':
+      return void dispatch(fetchPatientChartAction(arg));
+    case 'diagnoses':
+      return void dispatch(fetchDiagnosesAction(arg));
+    case 'allergies':
+      return void dispatch(fetchAllergiesAction(arg));
+    case 'notes':
+      return void dispatch(fetchNotesAction(arg));
+    case 'incidents':
+      return void dispatch(fetchIncidentsAction(arg));
+    case 'coverages':
+      return void dispatch(fetchCoveragesAction(arg));
+    case 'documents':
+      return void dispatch(fetchDocumentsAction(arg));
+    case 'appointments':
+      return void dispatch(fetchAppointmentsAction(arg));
+    default:
+      return void dispatch(
+        fetchHistoryAction({ patientId, kind: resource.split(':')[1] as HistoryCategory })
+      );
+  }
+}
+
+export function usePatientResource(
+  patientId: string | undefined,
+  resource: PatientResource,
+  enabled = true
+) {
+  const dispatch = useAppDispatch();
+  const status = useAppSelector((state) =>
+    patientId ? state.patients.resources[patientId]?.[resource] : undefined
+  );
+  const needsLoad = status === undefined || (status.stale === true && !status.loading);
+
+  const load = useCallback(() => {
+    if (apiMode() && patientId) loadResource(dispatch, patientId, resource);
+  }, [dispatch, patientId, resource]);
+
+  useEffect(() => {
+    if (enabled && needsLoad) load();
+  }, [enabled, needsLoad, load]);
+
+  return {
+    loading: status?.loading ?? (enabled && apiMode()),
+    loaded: status?.loaded ?? false,
+    error: status?.error ?? null,
+    retry: load,
+  };
+}
+
 export function usePatientLoader(patientId: string | undefined) {
   const dispatch = useAppDispatch();
   const error = useAppSelector((state) => state.patients.detailError);
+  const known = useAppSelector((state) =>
+    patientId ? Boolean(state.patients.byId[patientId]) : false
+  );
+  const chart = usePatientResource(patientId, 'chart');
 
-  const load = useCallback(() => {
+  const loadPatient = useCallback(() => {
     if (apiMode() && patientId) void dispatch(fetchPatientAction(patientId));
   }, [dispatch, patientId]);
 
-  useEffect(load, [load]);
+  useEffect(() => {
+    if (!known) loadPatient();
+  }, [known, loadPatient]);
 
-  return { error, retry: load };
+  useEffect(() => {
+    if (patientId) dispatch(refreshPatient(patientId));
+  }, [dispatch, patientId]);
+
+  return {
+    error,
+    retry: () => {
+      loadPatient();
+      chart.retry();
+    },
+  };
 }

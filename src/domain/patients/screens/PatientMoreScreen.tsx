@@ -10,8 +10,9 @@ import {
 import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl';
 import { TabPanel } from '@/components/ui/TabPanel';
 import { Spacing } from '@/constants/Theme';
+import { ResourceGate } from '@/domain/patients/components/ChartListParts';
 import { ChartNoteList, InsuranceList } from '@/domain/patients/components/MoreLists';
-import { useRoutePatient } from '@/domain/patients/hooks/usePatients';
+import { usePatientResource, useRoutePatient } from '@/domain/patients/hooks/usePatients';
 import { useTheme } from '@/hooks/useTheme';
 
 type MoreTab = 'notes' | 'insurance';
@@ -30,6 +31,8 @@ export default function PatientMoreScreen() {
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
   const { patient, chart } = useRoutePatient();
   const [tab, setTab] = useState<MoreTab>(isTab(tabParam) ? tabParam : 'notes');
+  const notes = usePatientResource(patient?.id, 'notes', tab === 'notes');
+  const coverages = usePatientResource(patient?.id, 'coverages', tab === 'insurance');
 
   useFocusEffect(
     useCallback(() => {
@@ -61,9 +64,13 @@ export default function PatientMoreScreen() {
           ]}
           showsVerticalScrollIndicator={false}>
           {tab === 'notes' ? (
-            <ChartNoteList notes={chart.notes} />
+            <ResourceGate state={notes}>
+              <ChartNoteList notes={chart.notes} />
+            </ResourceGate>
           ) : (
-            <InsuranceList plans={chart.insurancePlans} />
+            <ResourceGate state={coverages}>
+              <InsuranceList plans={chart.insurancePlans} />
+            </ResourceGate>
           )}
         </ScrollView>
       </TabPanel>

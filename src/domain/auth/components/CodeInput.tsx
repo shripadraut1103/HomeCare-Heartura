@@ -2,6 +2,7 @@ import { useRef, useState, type ComponentRef } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
+import type { TextFieldProps } from '@/components/ui/TextField';
 import { Radius, Spacing } from '@/constants/Theme';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -14,9 +15,18 @@ type CodeInputProps = {
   onSubmit: () => void;
   error?: boolean;
   disabled?: boolean;
+  InputComponent?: TextFieldProps['InputComponent'];
 };
 
-export function CodeInput({ value, length, onChange, onSubmit, error, disabled }: CodeInputProps) {
+export function CodeInput({
+  value,
+  length,
+  onChange,
+  onSubmit,
+  error,
+  disabled,
+  InputComponent: Input = TextInput,
+}: CodeInputProps) {
   const theme = useTheme();
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   const [focused, setFocused] = useState(true);
@@ -41,7 +51,7 @@ export function CodeInput({ value, length, onChange, onSubmit, error, disabled }
           </View>
         );
       })}
-      <TextInput
+      <Input
         ref={inputRef}
         accessibilityLabel={`${length}-digit code`}
         value={value}

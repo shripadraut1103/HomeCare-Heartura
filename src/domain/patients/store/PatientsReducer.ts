@@ -1,119 +1,131 @@
-import { createSlice, nanoid, type PayloadAction } from '@reduxjs/toolkit';
+import {
+  createSlice,
+  isFulfilled,
+  isPending,
+  isRejected,
+  type PayloadAction,
+} from '@reduxjs/toolkit';
 
 import type { ApiPatient } from '@/domain/patients/interfaces/PatientApi';
 import type {
-  Allergy,
-  ChartNote,
-  Diagnosis,
-  HistoryEntry,
-  InsurancePlan,
-  PatientDocument,
-  PatientIncident,
+  PatientChart,
+  PatientResource,
   PatientsState,
+  ResourceStatus,
 } from '@/domain/patients/interfaces/PatientInterfaces';
-import { toChart, toPatient } from '@/domain/patients/patientMapper';
 import {
+  toAllergy,
+  toChartFields,
+  toChartNote,
+  toDiagnosis,
+  toDocument,
+  toHistoryEntry,
+  toIncident,
+  toInsurancePlan,
+  toPatientFields,
+} from '@/domain/patients/patientChartMapper';
+import { emptyChart, toChart, toPatient, withTeams } from '@/domain/patients/patientMapper';
+import {
+  createAllergyAction,
+  createCoverageAction,
+  createDiagnosisAction,
+  createHistoryAction,
+  createIncidentAction,
+  createNoteAction,
+  fetchAllergiesAction,
+  fetchAppointmentsAction,
+  fetchCoveragesAction,
+  fetchDiagnosesAction,
+  fetchDocumentsAction,
+  fetchHistoryAction,
+  fetchIncidentsAction,
+  fetchNotesAction,
   fetchPatientAction,
+  fetchPatientChartAction,
   fetchPatientsAction,
+  resourceKey,
+  updateIncidentAction,
+  uploadDocumentAction,
+  type ResourceArg,
 } from '@/domain/patients/store/async-actions/PatientAsyncActions';
+import { toVisit } from '@/domain/visits/appointmentMapper';
+import type { ApiAppointment } from '@/domain/visits/interfaces/AppointmentApi';
+import {
+  changeVisitStatusAction,
+  createAppointmentsAction,
+  rescheduleVisitAction,
+  updateAppointmentAction,
+} from '@/domain/visits/store/async-actions/VisitAsyncActions';
 import { PATIENTS_REDUCER } from '@/store/constants/StoreConstants';
-
-const INCIDENT_BASE = 1000;
 
 const initialState: PatientsState = {
   byId: {},
   list: { ids: [], count: 0, page: 0, hasMore: false, loading: false, error: null },
   detailError: null,
   charts: {},
+  resources: {},
 };
 
+const RESOURCE_THUNKS = [
+  fetchPatientChartAction,
+  fetchDiagnosesAction,
+  fetchAllergiesAction,
+  fetchHistoryAction,
+  fetchNotesAction,
+  fetchIncidentsAction,
+  fetchCoveragesAction,
+  fetchDocumentsAction,
+  fetchAppointmentsAction,
+] as const;
+
 const savePatient = (state: PatientsState, api: ApiPatient) => {
-  state.byId[api.id] = toPatient(api);
+  state.byId[api.id] = { ...toPatient(api), ...state.charts[api.id]?.header };
   state.charts[api.id] = toChart(api, state.charts[api.id]);
 };
+
+const chartOf = (state: PatientsState, patientId: string): PatientChart =>
+  (state.charts[patientId] ??= emptyChart(patientId));
+
+const isLoaded = (state: PatientsState, patientId: string, resource: PatientResource) =>
+  Boolean(state.resources[patientId]?.[resource]?.loaded);
+
+const setStatus = (
+  state: PatientsState,
+  { patientId }: ResourceArg,
+  resource: PatientResource,
+  status: Partial<ResourceStatus>
+) => {
+  const resources = (state.resources[patientId] ??= {});
+  resources[resource] = {
+    loading: false,
+    loaded: false,
+    error: null,
+    ...resources[resource],
+    ...status,
+  };
+};
+
+const markStale = (state: PatientsState, patientId: string, only?: PatientResource) => {
+  const resources = state.resources[patientId];
+  if (!resources) return;
+  for (const [key, status] of Object.entries(resources)) {
+    if (status && status.loaded && !status.loading && (!only || key === only)) status.stale = true;
+  }
+};
+
+const VISIT_CHANGES = [
+  createAppointmentsAction,
+  updateAppointmentAction,
+  rescheduleVisitAction,
+  changeVisitStatusAction,
+] as const;
 
 const PatientsReducer = createSlice({
   name: PATIENTS_REDUCER,
   initialState,
   reducers: {
-    // TEMPORARY: these update the chart locally; replace with API thunks once the service exists.
-    addPatientDocument: {
-      reducer: (state, action: PayloadAction<{ patientId: string; document: PatientDocument }>) => {
-        state.charts[action.payload.patientId]?.documents.unshift(action.payload.document);
-      },
-      prepare: (payload: { patientId: string; document: Omit<PatientDocument, 'id'> }) => ({
-        payload: { ...payload, document: { ...payload.document, id: nanoid() } },
-      }),
-    },
-    addHistoryEntry: {
-      reducer: (state, action: PayloadAction<{ patientId: string; entry: HistoryEntry }>) => {
-        state.charts[action.payload.patientId]?.history.unshift(action.payload.entry);
-      },
-      prepare: (payload: { patientId: string; entry: Omit<HistoryEntry, 'id'> }) => ({
-        payload: { ...payload, entry: { ...payload.entry, id: nanoid() } },
-      }),
-    },
-    addDiagnosis: {
-      reducer: (state, action: PayloadAction<{ patientId: string; diagnosis: Diagnosis }>) => {
-        const chart = state.charts[action.payload.patientId];
-        if (!chart) return;
-        const hasPrimary = chart.diagnoses.some((item) => item.rank === 'primary');
-        chart.diagnoses.push({
-          ...action.payload.diagnosis,
-          rank: hasPrimary ? 'secondary' : 'primary',
-        });
-      },
-      prepare: (payload: { patientId: string; diagnosis: Omit<Diagnosis, 'id' | 'rank'> }) => ({
-        payload: {
-          ...payload,
-          diagnosis: { ...payload.diagnosis, id: nanoid(), rank: 'secondary' as const },
-        },
-      }),
-    },
-    addAllergy: {
-      reducer: (state, action: PayloadAction<{ patientId: string; allergy: Allergy }>) => {
-        state.charts[action.payload.patientId]?.allergies.push(action.payload.allergy);
-      },
-      prepare: (payload: { patientId: string; allergy: Omit<Allergy, 'id'> }) => ({
-        payload: { ...payload, allergy: { ...payload.allergy, id: nanoid() } },
-      }),
-    },
-    addChartNote: {
-      reducer: (state, action: PayloadAction<{ patientId: string; note: ChartNote }>) => {
-        state.charts[action.payload.patientId]?.notes.unshift(action.payload.note);
-      },
-      prepare: (payload: { patientId: string; note: Omit<ChartNote, 'id'> }) => ({
-        payload: { ...payload, note: { ...payload.note, id: nanoid() } },
-      }),
-    },
-    addInsurancePlan: {
-      reducer: (state, action: PayloadAction<{ patientId: string; plan: InsurancePlan }>) => {
-        state.charts[action.payload.patientId]?.insurancePlans.push(action.payload.plan);
-      },
-      prepare: (payload: { patientId: string; plan: Omit<InsurancePlan, 'id'> }) => ({
-        payload: { ...payload, plan: { ...payload.plan, id: nanoid() } },
-      }),
-    },
-    addPatientIncident: {
-      reducer: (
-        state,
-        action: PayloadAction<{ patientId: string; incident: Omit<PatientIncident, 'code'> }>
-      ) => {
-        const chart = state.charts[action.payload.patientId];
-        if (!chart) return;
-        const last = Math.max(
-          INCIDENT_BASE,
-          ...chart.incidents.map((item) => Number(item.code.replace(/\D/g, '')) || 0)
-        );
-        chart.incidents.unshift({
-          status: 'open',
-          ...action.payload.incident,
-          code: `INC-${last + 1}`,
-        });
-      },
-      prepare: (payload: { patientId: string; incident: Omit<PatientIncident, 'code'> }) => ({
-        payload,
-      }),
+    refreshPatient: (state, action: PayloadAction<string>) => {
+      markStale(state, action.payload);
     },
   },
   extraReducers: (builder) => {
@@ -147,17 +159,140 @@ const PatientsReducer = createSlice({
       .addCase(fetchPatientAction.fulfilled, (state, action) => {
         if ('error' in action.payload) state.detailError = action.payload.error;
         else savePatient(state, action.payload.data);
+      })
+      .addCase(fetchPatientChartAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        const id = action.meta.arg.patientId;
+        const api = action.payload.data;
+        const chart = chartOf(state, id);
+        const { diagnoses, allergies, notes, services = [], ...fields } = toChartFields(api);
+        Object.assign(chart, fields);
+        chart.services = withTeams(services, chart.providers);
+        if (!isLoaded(state, id, 'diagnoses') && diagnoses) chart.diagnoses = diagnoses;
+        if (!isLoaded(state, id, 'allergies') && allergies) chart.allergies = allergies;
+        if (!isLoaded(state, id, 'notes') && notes) chart.notes = notes;
+        chart.header = toPatientFields(api);
+        const patient = state.byId[id];
+        if (patient) Object.assign(patient, chart.header);
+      })
+      .addCase(fetchDiagnosesAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        chartOf(state, action.meta.arg.patientId).diagnoses =
+          action.payload.data.results.map(toDiagnosis);
+      })
+      .addCase(fetchAllergiesAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        chartOf(state, action.meta.arg.patientId).allergies =
+          action.payload.data.results.map(toAllergy);
+      })
+      .addCase(fetchHistoryAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        const chart = chartOf(state, action.meta.arg.patientId);
+        const kind = action.meta.arg.kind;
+        chart.history = [
+          ...chart.history.filter((entry) => entry.category !== kind),
+          ...action.payload.data.map(toHistoryEntry),
+        ];
+      })
+      .addCase(fetchNotesAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        chartOf(state, action.meta.arg.patientId).notes =
+          action.payload.data.results.map(toChartNote);
+      })
+      .addCase(fetchIncidentsAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        chartOf(state, action.meta.arg.patientId).incidents = action.payload.data.map(toIncident);
+      })
+      .addCase(fetchCoveragesAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        chartOf(state, action.meta.arg.patientId).insurancePlans =
+          action.payload.data.map(toInsurancePlan);
+      })
+      .addCase(fetchDocumentsAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        chartOf(state, action.meta.arg.patientId).documents =
+          action.payload.data.results.map(toDocument);
+      })
+      .addCase(fetchAppointmentsAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        chartOf(state, action.meta.arg.patientId).appointments = action.payload.data.results
+          .map(toVisit)
+          .sort((a, b) => b.startsAt.localeCompare(a.startsAt));
+      })
+      .addCase(createDiagnosisAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        const chart = chartOf(state, action.meta.arg.patientId);
+        chart.diagnoses = [...chart.diagnoses, toDiagnosis(action.payload.data)];
+      })
+      .addCase(createAllergyAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        const chart = chartOf(state, action.meta.arg.patientId);
+        chart.allergies = [...chart.allergies, toAllergy(action.payload.data)];
+      })
+      .addCase(createHistoryAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        const chart = chartOf(state, action.meta.arg.patientId);
+        chart.history = [toHistoryEntry(action.payload.data), ...chart.history];
+      })
+      .addCase(createNoteAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        const chart = chartOf(state, action.meta.arg.patientId);
+        chart.notes = [toChartNote(action.payload.data), ...chart.notes];
+      })
+      .addCase(createCoverageAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        const chart = chartOf(state, action.meta.arg.patientId);
+        chart.insurancePlans = [...chart.insurancePlans, toInsurancePlan(action.payload.data)];
+      })
+      .addCase(uploadDocumentAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        const chart = chartOf(state, action.meta.arg.patientId);
+        chart.documents = [toDocument(action.payload.data), ...chart.documents];
+      })
+      .addCase(createIncidentAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        const chart = chartOf(state, action.meta.arg.patientId);
+        chart.incidents = [toIncident(action.payload.data), ...chart.incidents];
+      })
+      .addCase(updateIncidentAction.fulfilled, (state, action) => {
+        const chart = state.charts[action.meta.arg.patientId];
+        if (!chart || 'error' in action.payload) return;
+        const updated = toIncident(action.payload.data);
+        const index = chart.incidents.findIndex((item) => item.id === updated.id);
+        if (index >= 0) chart.incidents[index] = updated;
+      })
+      .addMatcher(isPending(...RESOURCE_THUNKS), (state, action) => {
+        setStatus(state, action.meta.arg, resourceKey(action.type, action.meta.arg), {
+          loading: true,
+          error: null,
+          stale: false,
+        });
+      })
+      .addMatcher(isFulfilled(...VISIT_CHANGES), (state, action) => {
+        if ('error' in action.payload) return;
+        const data: ApiAppointment | ApiAppointment[] = action.payload.data;
+        const appointments = Array.isArray(data) ? data : [data];
+        new Set(appointments.map((item) => item.patient?.id).filter(Boolean)).forEach((id) =>
+          markStale(state, id, 'appointments')
+        );
+      })
+      .addMatcher(isFulfilled(...RESOURCE_THUNKS), (state, action) => {
+        const failed = 'error' in action.payload ? action.payload.error : null;
+        setStatus(state, action.meta.arg, resourceKey(action.type, action.meta.arg), {
+          loading: false,
+          error: failed,
+          ...(failed ? {} : { loaded: true }),
+        });
+      })
+      .addMatcher(isRejected(...RESOURCE_THUNKS), (state, action) => {
+        if (action.meta.condition) return;
+        setStatus(state, action.meta.arg, resourceKey(action.type, action.meta.arg), {
+          loading: false,
+          error: 'Something went wrong. Try again.',
+        });
       });
   },
 });
 
 export default PatientsReducer.reducer;
-export const {
-  addPatientDocument,
-  addHistoryEntry,
-  addDiagnosis,
-  addAllergy,
-  addChartNote,
-  addInsurancePlan,
-  addPatientIncident,
-} = PatientsReducer.actions;
+export const { refreshPatient } = PatientsReducer.actions;

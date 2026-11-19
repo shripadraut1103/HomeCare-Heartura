@@ -36,9 +36,15 @@ export const PATIENT_STATUS: Record<PatientStatus, StatusStyle> = {
     color: 'toneBlueFg',
     background: 'toneBlueBg',
   },
-  deniedServices: {
-    label: 'Denied services',
-    filterLabel: 'Denied Services',
+  request: {
+    label: 'Request',
+    filterLabel: 'Requests',
+    color: 'accent',
+    background: 'toneTealBg',
+  },
+  denied: {
+    label: 'Denied',
+    filterLabel: 'Denied',
     color: 'toneAmberFg',
     background: 'toneAmberBg',
   },
@@ -55,7 +61,8 @@ export const STATUS_ORDER: readonly PatientStatus[] = [
   'suspended',
   'inactive',
   'prospect',
-  'deniedServices',
+  'request',
+  'denied',
   'discharged',
 ];
 

@@ -85,7 +85,7 @@ const DETAILS: Record<string, Partial<PatientChart>> = {
       phone: '(908) 262-2132',
       manager: 'Reagan Dorsey',
     },
-    secondAddress: 'Day program · 600 First Ave, Raritan, NJ 08869',
+    addresses: [{ label: 'Day program', line: '600 First Ave, Raritan, NJ 08869' }],
     phones: ['(908) 262-2132', '(908) 642-6506'],
     email: 'reagand@alternativesinc.org',
     allergies: [

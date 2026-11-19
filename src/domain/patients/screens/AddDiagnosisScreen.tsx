@@ -6,58 +6,54 @@ import { Button } from '@/components/ui/Button';
 import { DateTimeField } from '@/components/ui/DateTimeField';
 import { Select } from '@/components/ui/Select';
 import { TextField } from '@/components/ui/TextField';
-import { DIAGNOSIS_STATUS, DIAGNOSIS_TYPE, optionsOf } from '@/domain/patients/clinicalStyles';
-import type {
-  DiagnosisStatus,
-  DiagnosisType,
-} from '@/domain/patients/interfaces/PatientInterfaces';
-import { addDiagnosis } from '@/domain/patients/store/PatientsReducer';
+import {
+  DIAGNOSIS_TYPE,
+  NEW_DIAGNOSIS_STATUSES,
+  optionsOf,
+} from '@/domain/patients/clinicalStyles';
+import { useChartActions } from '@/domain/patients/hooks/useChartActions';
+import type { DiagnosisType } from '@/domain/patients/interfaces/PatientInterfaces';
 import { ModalFormLayout } from '@/domain/profile/components/ModalFormLayout';
-import { useProfile } from '@/domain/profile/hooks/useProfile';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
-import { formatNumericDate } from '@/utils/dateFormat';
+import { toIsoDate } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
 
+type NewDiagnosisStatus = (typeof NEW_DIAGNOSIS_STATUSES)[number]['value'];
+
 const TYPE_OPTIONS = optionsOf(DIAGNOSIS_TYPE);
-const STATUS_OPTIONS = optionsOf(DIAGNOSIS_STATUS);
 
 export default function AddDiagnosisScreen() {
   const dispatch = useAppDispatch();
   const { patientId } = useLocalSearchParams<{ patientId: string }>();
-  const profile = useProfile();
+  const actions = useChartActions(patientId);
   const [description, setDescription] = useState('');
   const [code, setCode] = useState('');
   const [type, setType] = useState<DiagnosisType>('chronic');
-  const [onset, setOnset] = useState(() => new Date());
-  const [status, setStatus] = useState<DiagnosisStatus>('active');
-  const [notedBy, setNotedBy] = useState(profile.name);
+  const [onset, setOnset] = useState<Date | null>(() => new Date());
+  const [status, setStatus] = useState<NewDiagnosisStatus>('active');
+  const [saving, setSaving] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const isDirty = [description, code].some((value) => value.trim() !== '');
   const { leave } = useUnsavedChangesGuard(isDirty, 'This diagnosis hasn’t been saved.');
 
-  const save = () => {
+  const save = async () => {
     if (!description.trim()) {
       setShowErrors(true);
       haptics.error();
       return;
     }
-    // TODO: save to the patient chart API once it exists.
-    dispatch(
-      addDiagnosis({
-        patientId,
-        diagnosis: {
-          description: description.trim(),
-          code: code.trim().toUpperCase(),
-          type,
-          status,
-          onset: formatNumericDate(onset),
-          notedBy: notedBy.trim() || undefined,
-        },
-      })
-    );
-    haptics.success();
+    setSaving(true);
+    const saved = await actions.addDiagnosis({
+      name: description.trim(),
+      icd10: code.trim().toUpperCase(),
+      type,
+      status,
+      onset: onset ? toIsoDate(onset) : null,
+    });
+    setSaving(false);
+    if (!saved) return;
     dispatch(setToastMessage({ message: 'Diagnosis added' }));
     leave();
   };
@@ -73,7 +69,13 @@ export default function AddDiagnosisScreen() {
             style={styles.cancel}
             onPress={() => router.back()}
           />
-          <Button title="Save" style={styles.save} onPress={save} />
+          <Button
+            title="Save"
+            style={styles.save}
+            loading={saving}
+            disabled={saving}
+            onPress={() => void save()}
+          />
         </>
       }>
       <TextField
@@ -92,9 +94,14 @@ export default function AddDiagnosisScreen() {
         autoCorrect={false}
       />
       <Select label="Type" options={TYPE_OPTIONS} value={type} onChange={setType} />
-      <DateTimeField label="Onset" mode="date" value={onset} onChange={setOnset} />
-      <Select label="Status" options={STATUS_OPTIONS} value={status} onChange={setStatus} />
-      <TextField label="Noted by" value={notedBy} onChangeText={setNotedBy} />
+      <DateTimeField
+        label="Onset"
+        mode="date"
+        value={onset}
+        onChange={setOnset}
+        onClear={() => setOnset(null)}
+      />
+      <Select label="Status" options={NEW_DIAGNOSIS_STATUSES} value={status} onChange={setStatus} />
     </ModalFormLayout>
   );
 }

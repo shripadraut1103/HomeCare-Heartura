@@ -4,20 +4,38 @@ import { Pill } from '@/components/ui/Pill';
 import type { ThemeColor } from '@/constants/Theme';
 import { PatientCardShell } from '@/domain/patients/components/PatientCardShell';
 import { DetailGrid, ExpandableRow } from '@/domain/patients/components/ExpandableRow';
-import type { PatientService, ServiceStatus } from '@/domain/patients/interfaces/PatientInterfaces';
+import { EMPTY_VALUE } from '@/domain/patients/components/ChartListParts';
+import type { PatientService } from '@/domain/patients/interfaces/PatientInterfaces';
 
-const STATUS: Record<ServiceStatus, { label: string; color: ThemeColor; background: ThemeColor }> =
-  {
-    active: { label: 'Active', color: 'success', background: 'successMuted' },
-    privatePay: { label: 'Private pay', color: 'primary', background: 'toneBlueBg' },
-    onHold: { label: 'On hold', color: 'toneAmberFg', background: 'toneAmberBg' },
-    ended: { label: 'Ended', color: 'textSecondary', background: 'backgroundElement' },
+type StatusStyle = { label: string; color: ThemeColor; background: ThemeColor };
+
+const STATUS: Record<string, StatusStyle> = {
+  seeking: { label: 'Seeking coverage', color: 'toneAmberFg', background: 'toneAmberBg' },
+  assigned: { label: 'Assigned', color: 'primary', background: 'toneBlueBg' },
+  active: { label: 'Active', color: 'success', background: 'successMuted' },
+  discharged: { label: 'Discharged', color: 'textSecondary', background: 'backgroundElement' },
+};
+
+const statusStyle = (service: PatientService): StatusStyle => {
+  const style = STATUS[service.status] ?? {
+    label: service.status,
+    color: 'textSecondary',
+    background: 'backgroundElement',
   };
+  return { ...style, label: service.statusLabel || style.label };
+};
+
+const count = (value: number | null) => (value === null ? EMPTY_VALUE : String(value));
 
 const unitsText = (service: PatientService) =>
   service.units
-    ? `Used ${service.units.used} of ${service.units.total} · accrued ${service.units.accrued} · missed ${service.units.missed} · makeup ${service.units.makeup}`
-    : 'Not tracked · private pay';
+    ? `Used ${service.units.used} of ${count(service.units.total)} · accrued ${count(service.units.accrued)} · missed ${service.units.missed} · makeup ${count(service.units.makeup)}`
+    : 'No current authorization';
+
+const dates = (service: PatientService) =>
+  service.start || service.end
+    ? `${service.start || EMPTY_VALUE} – ${service.end || EMPTY_VALUE}`
+    : EMPTY_VALUE;
 
 export function PatientServices({ services }: { services: readonly PatientService[] }) {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
@@ -33,13 +51,13 @@ export function PatientServices({ services }: { services: readonly PatientServic
   return (
     <PatientCardShell>
       {services.map((service, index) => {
-        const status = STATUS[service.status];
+        const status = statusStyle(service);
         return (
           <ExpandableRow
             key={service.id}
             isFirst={index === 0}
             title={service.name}
-            subtitle={`${service.start} – ${service.end}`}
+            subtitle={dates(service)}
             expanded={expanded.has(service.id)}
             onToggle={() => toggle(service.id)}
             trailing={
@@ -52,10 +70,10 @@ export function PatientServices({ services }: { services: readonly PatientServic
             }>
             <DetailGrid
               items={[
-                { label: 'Plan dates', value: `${service.start} – ${service.end}` },
-                { label: 'Payer', value: service.payer },
+                { label: 'Plan dates', value: dates(service) },
+                { label: 'Payer', value: service.payer || EMPTY_VALUE },
                 { label: 'Units', value: unitsText(service) },
-                { label: 'Team', value: service.team.join(', ') },
+                { label: 'Team', value: service.team.join(', ') || EMPTY_VALUE },
               ]}
             />
           </ExpandableRow>

@@ -42,3 +42,7 @@ export interface AuthState {
   me: AuthMe | null;
   challenge: TwoFactorChallenge | null;
 }
+
+export interface ResetCodeVerified {
+  reset_token: string;
+}

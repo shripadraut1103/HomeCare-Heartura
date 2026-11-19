@@ -3,6 +3,7 @@ import { get, post } from '@/config/AxiosConfig';
 import type {
   AuthMe,
   LoginResponse,
+  ResetCodeVerified,
   SignedIn,
   TwoFactorRequired,
 } from '@/domain/auth/interfaces/AuthInterfaces';
@@ -16,6 +17,9 @@ export const AUTH_ENDPOINTS = {
   logout: '/api/auth/logout/',
   me: '/api/auth/me/',
   forgotPassword: '/api/auth/forgot-password/',
+  verifyResetCode: '/api/auth/verify-reset-code/',
+  resetPassword: '/api/auth/reset-password/',
+  changePassword: '/api/auth/profile/password/',
 } as const;
 
 /**
@@ -53,6 +57,24 @@ class AuthService {
     );
   }
 
+  async verifyResetCode(email: string, code: string): Promise<ServiceResult<ResetCodeVerified>> {
+    return callApi(() =>
+      post<ResetCodeVerified>(AUTH_ENDPOINTS.verifyResetCode, { email: email.trim(), code })
+    );
+  }
+
+  async resetPassword(
+    token: string,
+    newPassword: string
+  ): Promise<ServiceResult<{ detail: string }>> {
+    return callApi(() =>
+      post<{ detail: string }>(AUTH_ENDPOINTS.resetPassword, {
+        token,
+        new_password: newPassword,
+      })
+    );
+  }
+
   async logout(refresh: string): Promise<ServiceResult<null>> {
     return callApi(async () => {
       await post(AUTH_ENDPOINTS.logout, { refresh });
@@ -64,19 +86,16 @@ class AuthService {
     return callApi(() => get<AuthMe>(AUTH_ENDPOINTS.me));
   }
 
-  // TODO: call the change password endpoint once the backend shares it.
-  async changePassword(_data: {
+  async changePassword(data: {
     currentPassword: string;
     newPassword: string;
-  }): Promise<ServiceResult<null>> {
-    // Once the change password contract and AxiosConfig exist:
-    // try {
-    //   await post('<change password endpoint>', data);
-    //   return { data: null };
-    // } catch (error) {
-    //   return { error: getErrorMessage(error), status: <HTTP status from error> };
-    // }
-    return { data: null };
+  }): Promise<ServiceResult<{ detail: string }>> {
+    return callApi(() =>
+      post<{ detail: string }>(AUTH_ENDPOINTS.changePassword, {
+        current_password: data.currentPassword,
+        new_password: data.newPassword,
+      })
+    );
   }
 }
 

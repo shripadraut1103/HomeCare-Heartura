@@ -19,8 +19,8 @@ const apiPatient = (overrides: Partial<ApiPatient> = {}): ApiPatient => ({
   services_label: 'OT, PT',
   group_home: { id: 'g1', name: 'Maple House' },
   support_coordinator: null,
-  status: 'denied_services',
-  status_label: 'Denied services',
+  status: 'denied',
+  status_label: 'Denied',
   status_note: '',
   location: { setting: 'group_home', place_of_service: '14', evv_required: true },
   county: 'Hudson',
@@ -45,7 +45,8 @@ describe('toPatient', () => {
       id: 'p1',
       name: 'Ava Stone',
       code: 'MRN-001',
-      status: 'deniedServices',
+      tag: 'MRN-001',
+      status: 'denied',
       medicaidId: 'MCD-7',
       dateOfBirth: '2015-04-02',
       discipline: 'OT · PT',
@@ -53,20 +54,43 @@ describe('toPatient', () => {
     });
   });
 
+  it('uses the service location label for the card', () => {
+    const patient = toPatient(
+      apiPatient({
+        service_location: {
+          code: '12',
+          label: 'Private home · 12',
+          evv_required: true,
+          address: '',
+        },
+      })
+    );
+    expect(patient.locationLabel).toBe('Private home · 12');
+  });
+
   it('falls back safely on values it does not know', () => {
     const patient = toPatient(
-      apiPatient({ status: 'archived', medicaid_id: '', location: null, services: [] })
+      apiPatient({
+        status: 'archived',
+        status_label: 'Archived',
+        medicaid_id: '',
+        location: null,
+        services: [],
+      })
     );
     expect(patient.status).toBe('inactive');
+    expect(patient.statusLabel).toBe('Archived');
     expect(patient.medicaidId).toBeUndefined();
     expect(patient.serviceLocation).toBe('');
+    expect(patient.locationLabel).toBeUndefined();
     expect(patient.discipline).toBe('OT, PT');
   });
 });
 
 describe('toApiStatus', () => {
   it('sends the backend value, and nothing for all', () => {
-    expect(toApiStatus('deniedServices')).toBe('denied_services');
+    expect(toApiStatus('denied')).toBe('denied');
+    expect(toApiStatus('request')).toBe('request');
     expect(toApiStatus('all')).toBeUndefined();
     expect(toApiStatus('active')).toBe('active,suspended');
   });
@@ -76,6 +100,7 @@ describe('toChart', () => {
   it('builds services with their team and keeps what the app already added', () => {
     const first = toChart(apiPatient());
     expect(first.services.map((service) => service.team)).toEqual([['Kim Lee'], ['Raj Patel']]);
+    expect(first.providers).toHaveLength(2);
     expect(first.groupHome?.name).toBe('Maple House');
 
     const withNote = { ...first, notes: [{ id: 'n1' }] } as unknown as typeof first;
@@ -117,6 +142,10 @@ describe('PatientsReducer API cases', () => {
     );
     expect(state.list.error).toBe('Network error');
     expect(state.list.loading).toBe(false);
+  });
+
+  it('maps request status', () => {
+    expect(toPatient(apiPatient({ status: 'request' })).status).toBe('request');
   });
 
   it('saves a fetched patient and its chart', () => {

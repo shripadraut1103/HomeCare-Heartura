@@ -1,6 +1,5 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import * as Sharing from 'expo-sharing';
 import { useCallback, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
@@ -16,14 +15,12 @@ import {
   DocumentDetailsSheet,
   type DocumentDetailsSheetData,
 } from '@/domain/patients/components/DocumentDetailsSheet';
+import { ResourceGate } from '@/domain/patients/components/ChartListParts';
 import { DocumentList } from '@/domain/patients/components/DocumentList';
 import { AppointmentList, IncidentList } from '@/domain/patients/components/VisitLists';
-import { useRoutePatient } from '@/domain/patients/hooks/usePatients';
-import type { PatientDocument } from '@/domain/patients/interfaces/PatientInterfaces';
-import { useAllVisits } from '@/domain/visits/hooks/useVisits';
+import { usePatientDocuments } from '@/domain/patients/hooks/usePatientDocuments';
+import { usePatientResource, useRoutePatient } from '@/domain/patients/hooks/usePatients';
 import { useTheme } from '@/hooks/useTheme';
-import { setToastMessage } from '@/store/common-reducer/ToastReducer';
-import { useAppDispatch } from '@/store/hooks';
 
 type VisitsTab = 'documents' | 'appointments' | 'incidents';
 
@@ -38,13 +35,15 @@ const isTab = (value: string | undefined): value is VisitsTab =>
 
 export default function PatientVisitsScreen() {
   const theme = useTheme();
-  const dispatch = useAppDispatch();
   const tabBarSpace = useTabBarSpace();
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
   const { patient, chart } = useRoutePatient();
-  const visits = useAllVisits();
   const documentSheet = useRef<BottomSheetModal<DocumentDetailsSheetData>>(null);
   const [tab, setTab] = useState<VisitsTab>(isTab(tabParam) ? tabParam : 'documents');
+  const documentFiles = usePatientDocuments(patient?.id);
+  const documents = usePatientResource(patient?.id, 'documents', tab === 'documents');
+  const appointments = usePatientResource(patient?.id, 'appointments', tab === 'appointments');
+  const incidents = usePatientResource(patient?.id, 'incidents', tab === 'incidents');
 
   useFocusEffect(
     useCallback(() => {
@@ -53,30 +52,6 @@ export default function PatientVisitsScreen() {
   );
 
   if (!patient || !chart) return null;
-
-  const patientVisits = visits
-    .filter((visit) => visit.patientId === patient.id)
-    .sort((a, b) => b.startsAt.localeCompare(a.startsAt));
-
-  const notice = (message: string, type?: 'warning' | 'error') =>
-    dispatch(setToastMessage({ message, type }));
-
-  const openDocument = async (document: PatientDocument) => {
-    if (!document.uri) {
-      // TODO: download the file from the documents API before opening it.
-      notice('This document opens once the documents service is connected.', 'warning');
-      return;
-    }
-    try {
-      if (await Sharing.isAvailableAsync())
-        await Sharing.shareAsync(document.uri, {
-          dialogTitle: document.title,
-          mimeType: document.mimeType,
-        });
-    } catch {
-      notice('Couldn’t open that document.', 'error');
-    }
-  };
 
   const fab =
     tab === 'documents'
@@ -113,14 +88,20 @@ export default function PatientVisitsScreen() {
           ]}
           showsVerticalScrollIndicator={false}>
           {tab === 'documents' ? (
-            <DocumentList
-              documents={chart.documents}
-              onOpenDetails={(document) => documentSheet.current?.present({ document })}
-            />
+            <ResourceGate state={documents}>
+              <DocumentList
+                documents={chart.documents}
+                onOpenDetails={(document) => documentSheet.current?.present({ document })}
+              />
+            </ResourceGate>
           ) : tab === 'appointments' ? (
-            <AppointmentList visits={patientVisits} />
+            <ResourceGate state={appointments}>
+              <AppointmentList visits={chart.appointments ?? []} />
+            </ResourceGate>
           ) : (
-            <IncidentList incidents={chart.incidents} />
+            <ResourceGate state={incidents}>
+              <IncidentList patientId={patient.id} incidents={chart.incidents} />
+            </ResourceGate>
           )}
         </ScrollView>
       </TabPanel>
@@ -132,10 +113,7 @@ export default function PatientVisitsScreen() {
           onPress={fab.onPress}
         />
       </View>
-      <DocumentDetailsSheet
-        ref={documentSheet}
-        onOpenFile={(document) => void openDocument(document)}
-      />
+      <DocumentDetailsSheet ref={documentSheet} onOpenFile={documentFiles.open} />
     </View>
   );
 }

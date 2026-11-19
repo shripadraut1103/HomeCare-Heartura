@@ -27,13 +27,7 @@ export const VISIT_STATUS: Record<VisitStatus, StatusStyle> = {
   },
 };
 
-/** Statuses a provider can set by hand from "Change status". */
-export const EDITABLE_VISIT_STATUSES: readonly VisitStatus[] = [
-  'scheduled',
-  'cancelled',
-  'noShow',
-  'rescheduled',
-];
+export const EDITABLE_VISIT_STATUSES: readonly VisitStatus[] = ['scheduled', 'cancelled', 'noShow'];
 
 export const ALL_VISIT_STATUSES = Object.keys(VISIT_STATUS) as VisitStatus[];
 

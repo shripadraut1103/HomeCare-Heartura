@@ -14,40 +14,41 @@ import { formatFileSize } from '@/domain/communications/attachments';
 import { useAttachmentPicker } from '@/domain/communications/hooks/useAttachmentPicker';
 import type { Attachment } from '@/domain/communications/interfaces/CommunicationInterfaces';
 import { FileSourceSheet, type FileSource } from '@/domain/patients/components/FileSourceSheet';
+import { usePatientDocuments } from '@/domain/patients/hooks/usePatientDocuments';
+import type {
+  ApiDocumentCategory,
+  ApiDocumentSection,
+} from '@/domain/patients/interfaces/PatientApi';
 import {
-  buildUploads,
   checkUploads,
   DOCUMENT_SECTIONS,
   DOCUMENT_TYPES,
   MAX_UPLOAD_BYTES,
   UPLOAD_TYPES,
 } from '@/domain/patients/patientDocuments';
-import { addPatientDocument } from '@/domain/patients/store/PatientsReducer';
 import { ModalFormLayout } from '@/domain/profile/components/ModalFormLayout';
-import { useProfile } from '@/domain/profile/hooks/useProfile';
 import { useTheme } from '@/hooks/useTheme';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { setToastMessage, type ToastType } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
-import { formatNumericDate } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
 
 const LIBRARY_LIMIT = 10;
 
-const toOptions = (values: readonly string[]) => values.map((value) => ({ value, label: value }));
-
 export default function UploadDocumentScreen() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const provider = useProfile();
   const picker = useAttachmentPicker();
   const { patientId } = useLocalSearchParams<{ patientId: string }>();
+  const documents = usePatientDocuments(patientId);
   const sourceSheet = useRef<BottomSheetModal>(null);
-  const [section, setSection] = useState(DOCUMENT_SECTIONS[0]);
-  const [kind, setKind] = useState<string | null>(null);
+  const [section, setSection] = useState<ApiDocumentSection>(DOCUMENT_SECTIONS[0].value);
+  const [kind, setKind] = useState<ApiDocumentCategory | null>(null);
+  const [saving, setSaving] = useState(false);
   const [documentDate, setDocumentDate] = useState<Date | null>(() => new Date());
   const [name, setName] = useState('');
   const [files, setFiles] = useState<readonly Attachment[]>([]);
+  const [uploadedCount, setUploadedCount] = useState(0);
   const [showErrors, setShowErrors] = useState(false);
   const { leave } = useUnsavedChangesGuard(
     files.length > 0 || name.trim().length > 0 || kind !== null,
@@ -78,26 +79,26 @@ export default function UploadDocumentScreen() {
     }
   };
 
-  const upload = () => {
+  const upload = async () => {
     if (!kind || files.length === 0) {
       setShowErrors(true);
       haptics.error();
       return;
     }
-    // TODO: upload the files to the documents API and store their URLs instead of local URIs.
-    const documents = buildUploads(files, {
-      name,
-      kind,
-      section,
-      documentDate: documentDate ? formatNumericDate(documentDate) : '',
-      uploadedOn: formatNumericDate(new Date()),
-      author: provider.name,
-    });
-    for (const document of [...documents].reverse())
-      dispatch(addPatientDocument({ patientId, document }));
-    haptics.success();
-    notice(documents.length === 1 ? 'Document uploaded' : `${documents.length} documents uploaded`);
-    leave();
+    setSaving(true);
+    const uploaded = await documents.upload(
+      files,
+      { section, category: kind, name, documentDate },
+      uploadedCount
+    );
+    setSaving(false);
+    if (uploaded === 0) return;
+    notice(uploaded === 1 ? 'Document uploaded' : `${uploaded} documents uploaded`);
+    if (uploaded === files.length) leave();
+    else {
+      setUploadedCount((count) => count + uploaded);
+      setFiles((current) => current.slice(uploaded));
+    }
   };
 
   return (
@@ -111,13 +112,19 @@ export default function UploadDocumentScreen() {
             style={styles.cancel}
             onPress={() => router.back()}
           />
-          <Button title="Upload" style={styles.submit} onPress={upload} />
+          <Button
+            title="Upload"
+            style={styles.submit}
+            loading={saving}
+            disabled={saving}
+            onPress={() => void upload()}
+          />
         </>
       }>
       <Select
         label="Section"
         required
-        options={toOptions(DOCUMENT_SECTIONS)}
+        options={DOCUMENT_SECTIONS}
         value={section}
         onChange={setSection}
       />
@@ -125,7 +132,7 @@ export default function UploadDocumentScreen() {
         label="Type"
         required
         placeholder="Select"
-        options={toOptions(DOCUMENT_TYPES)}
+        options={DOCUMENT_TYPES}
         value={kind}
         onChange={setKind}
         error={showErrors && !kind ? 'Choose a type' : undefined}
@@ -196,7 +203,7 @@ export default function UploadDocumentScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Choose files or take a photo"
-          accessibilityHint="PDF, JPG or PNG, up to 25 MB each"
+          accessibilityHint="PDF, JPG or PNG, up to 10 MB each"
           onPress={() => {
             haptics.tap();
             sourceSheet.current?.present();

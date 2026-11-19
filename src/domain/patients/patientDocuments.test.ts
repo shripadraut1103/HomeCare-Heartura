@@ -1,5 +1,10 @@
 import type { Attachment } from '@/domain/communications/interfaces/CommunicationInterfaces';
-import { buildUploads, checkUploads, MAX_UPLOAD_BYTES } from '@/domain/patients/patientDocuments';
+import {
+  checkUploads,
+  documentStatusPill,
+  MAX_UPLOAD_BYTES,
+  uploadName,
+} from '@/domain/patients/patientDocuments';
 
 const file = (name: string, size = 1000, mimeType?: string): Attachment => ({
   id: name,
@@ -10,17 +15,8 @@ const file = (name: string, size = 1000, mimeType?: string): Attachment => ({
   mimeType,
 });
 
-const details = {
-  name: '',
-  kind: 'ISP',
-  section: 'Shared with providers',
-  documentDate: '09/03/2026',
-  uploadedOn: '11/06/2026',
-  author: 'Helena Ruiz, DPT',
-};
-
 describe('patientDocuments', () => {
-  it('accepts PDF, JPG and PNG files up to 25 MB', () => {
+  it('accepts PDF, JPG and PNG files up to 10 MB', () => {
     const { accepted, rejected } = checkUploads([
       file('plan.pdf'),
       file('photo.JPG'),
@@ -32,16 +28,20 @@ describe('patientDocuments', () => {
   });
 
   it('names a document after its file unless a name is given', () => {
-    expect(buildUploads([file('ISP_2026.pdf')], details)[0]).toMatchObject({
-      title: 'ISP_2026',
-      kind: 'ISP',
-      status: 'onFile',
-      mimeType: 'application/pdf',
-    });
+    expect(uploadName('', 'ISP_2026.pdf', 0, 1)).toBe('ISP_2026');
+    expect(uploadName(' Referral ', 'a.pdf', 0, 1)).toBe('Referral');
+    expect(uploadName('Lab report', 'b.pdf', 1 + 0, 1 + 2)).toBe('Lab report (2)');
+    expect(uploadName('Referral', 'b.pdf', 1, 2)).toBe('Referral (2)');
+  });
+
+  it('prefers the API label and shows unknown statuses as is', () => {
+    const base = { id: 'd1', title: 'ISP', kind: 'ISP', author: 'Kim', date: '' };
     expect(
-      buildUploads([file('a.pdf'), file('b.pdf')], { ...details, name: 'Referral' }).map(
-        (document) => document.title
-      )
-    ).toEqual(['Referral (1)', 'Referral (2)']);
+      documentStatusPill({ ...base, status: 'pending', statusLabel: 'Awaiting' })
+    ).toMatchObject({ label: 'Awaiting', color: 'toneAmberFg' });
+    expect(documentStatusPill({ ...base, status: 'archived' })).toMatchObject({
+      label: 'archived',
+      color: 'textSecondary',
+    });
   });
 });

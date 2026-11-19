@@ -6,43 +6,33 @@ import { Button } from '@/components/ui/Button';
 import { Checkbox } from '@/components/ui/Checkbox';
 import { TextField } from '@/components/ui/TextField';
 import { Radius, Spacing } from '@/constants/Theme';
-import { addChartNote } from '@/domain/patients/store/PatientsReducer';
+import { useChartActions } from '@/domain/patients/hooks/useChartActions';
 import { ModalFormLayout } from '@/domain/profile/components/ModalFormLayout';
-import { useProfile } from '@/domain/profile/hooks/useProfile';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
-import { formatNumericDate } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
 
 export default function AddNoteScreen() {
   const dispatch = useAppDispatch();
   const { patientId } = useLocalSearchParams<{ patientId: string }>();
-  const profile = useProfile();
+  const actions = useChartActions(patientId);
   const [text, setText] = useState('');
   const [critical, setCritical] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const { leave } = useUnsavedChangesGuard(text.trim() !== '', 'This note hasn’t been saved.');
 
-  const save = () => {
+  const save = async () => {
     if (!text.trim()) {
       setShowErrors(true);
       haptics.error();
       return;
     }
-    // TODO: save to the patient chart API once it exists.
-    dispatch(
-      addChartNote({
-        patientId,
-        note: {
-          text: text.trim(),
-          author: profile.name,
-          date: formatNumericDate(new Date()),
-          critical: critical || undefined,
-        },
-      })
-    );
-    haptics.success();
+    setSaving(true);
+    const saved = await actions.addNote(text, critical);
+    setSaving(false);
+    if (!saved) return;
     dispatch(setToastMessage({ message: 'Note added' }));
     leave();
   };
@@ -58,7 +48,13 @@ export default function AddNoteScreen() {
             style={styles.cancel}
             onPress={() => router.back()}
           />
-          <Button title="Save" style={styles.save} onPress={save} />
+          <Button
+            title="Save"
+            style={styles.save}
+            loading={saving}
+            disabled={saving}
+            onPress={() => void save()}
+          />
         </>
       }>
       <TextField

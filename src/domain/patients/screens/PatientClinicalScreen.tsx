@@ -12,8 +12,9 @@ import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl
 import { TabPanel } from '@/components/ui/TabPanel';
 import { Spacing } from '@/constants/Theme';
 import { AllergyList, DiagnosisList } from '@/domain/patients/components/ClinicalLists';
+import { ResourceGate } from '@/domain/patients/components/ChartListParts';
 import { HistoryList } from '@/domain/patients/components/HistoryList';
-import { useRoutePatient } from '@/domain/patients/hooks/usePatients';
+import { usePatientResource, useRoutePatient } from '@/domain/patients/hooks/usePatients';
 import { HISTORY_CATEGORIES, HISTORY_LABELS } from '@/domain/patients/patientHistory';
 import type { HistoryCategory } from '@/domain/patients/interfaces/PatientInterfaces';
 import { useTheme } from '@/hooks/useTheme';
@@ -38,6 +39,9 @@ export default function PatientClinicalScreen() {
     isSection(sectionParam) ? sectionParam : 'diagnosis'
   );
   const [category, setCategory] = useState<HistoryCategory>('surgical');
+  const diagnoses = usePatientResource(patient?.id, 'diagnoses', section === 'diagnosis');
+  const allergies = usePatientResource(patient?.id, 'allergies', section === 'allergies');
+  const history = usePatientResource(patient?.id, `history:${category}`, section === 'history');
 
   useFocusEffect(
     useCallback(() => {
@@ -47,7 +51,7 @@ export default function PatientClinicalScreen() {
 
   if (!patient || !chart) return null;
 
-  const history = chart.history.filter((entry) => entry.category === category);
+  const entries = chart.history.filter((entry) => entry.category === category);
   const params = { patientId: patient.id };
   const addAction =
     section === 'diagnosis'
@@ -79,9 +83,13 @@ export default function PatientClinicalScreen() {
           ]}
           showsVerticalScrollIndicator={false}>
           {section === 'diagnosis' ? (
-            <DiagnosisList diagnoses={chart.diagnoses} />
+            <ResourceGate state={diagnoses}>
+              <DiagnosisList diagnoses={chart.diagnoses} />
+            </ResourceGate>
           ) : section === 'allergies' ? (
-            <AllergyList allergies={chart.allergies} />
+            <ResourceGate state={allergies}>
+              <AllergyList allergies={chart.allergies} />
+            </ResourceGate>
           ) : (
             <>
               <ChipGroup
@@ -94,11 +102,13 @@ export default function PatientClinicalScreen() {
                   if (next) setCategory(next);
                 }}
               />
-              <HistoryList
-                key={category}
-                entries={history}
-                empty={`No ${HISTORY_LABELS[category].toLowerCase()} history recorded.`}
-              />
+              <ResourceGate state={history}>
+                <HistoryList
+                  key={category}
+                  entries={entries}
+                  empty={`No ${HISTORY_LABELS[category].toLowerCase()} history recorded.`}
+                />
+              </ResourceGate>
             </>
           )}
         </ScrollView>

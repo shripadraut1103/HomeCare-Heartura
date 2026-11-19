@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 
+import { newPasswordError } from '@/domain/auth/passwordErrors';
+import { sessionExpired } from '@/domain/auth/store/AuthReducer';
 import AuthService from '@/domain/auth/store/services/AuthServices';
 import {
   changePasswordSchema,
@@ -22,13 +24,25 @@ export function useChangePasswordForm(onChanged: () => void) {
     void form.handleSubmit(
       async ({ currentPassword, newPassword: password }) => {
         const result = await AuthService.changePassword({ currentPassword, newPassword: password });
-        if ('error' in result) {
-          haptics.error();
-          form.setError('currentPassword', { message: result.error });
-        } else {
+        if (!('error' in result)) {
           haptics.success();
-          dispatch(setToastMessage({ message: 'Password changed' }));
           onChanged();
+          dispatch(sessionExpired());
+          dispatch(
+            setToastMessage({
+              message: 'Password changed. Sign in again with your new password.',
+            })
+          );
+          return;
+        }
+        haptics.error();
+        const policyError = newPasswordError(result);
+        if (result.code === 'CURRENT_PASSWORD_INVALID') {
+          form.setError('currentPassword', { message: result.error }, { shouldFocus: true });
+        } else if (policyError) {
+          form.setError('newPassword', { message: policyError }, { shouldFocus: true });
+        } else {
+          dispatch(setToastMessage({ message: result.error, type: 'error' }));
         }
       },
       () => haptics.error()

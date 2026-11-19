@@ -15,17 +15,21 @@ export const PASSWORD_RULES = [
   },
 ] as const;
 
+export const newPasswordField = z
+  .string()
+  .min(1, 'Enter a new password')
+  .refine(
+    (value) => PASSWORD_RULES.every((rule) => rule.test(value)),
+    'Meet every requirement below'
+  );
+
+export const confirmPasswordField = z.string().min(1, 'Enter the new password again');
+
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, 'Enter your current password'),
-    newPassword: z
-      .string()
-      .min(1, 'Enter a new password')
-      .refine(
-        (value) => PASSWORD_RULES.every((rule) => rule.test(value)),
-        'Meet every requirement below'
-      ),
-    confirmPassword: z.string().min(1, 'Enter the new password again'),
+    newPassword: newPasswordField,
+    confirmPassword: confirmPasswordField,
   })
   .refine((values) => values.confirmPassword === values.newPassword, {
     path: ['confirmPassword'],

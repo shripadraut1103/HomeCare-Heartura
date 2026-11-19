@@ -116,7 +116,7 @@ export const MOCK_PATIENTS: Patient[] = [
   }),
   patient({
     id: 'p-marcus-lee',
-    status: 'deniedServices',
+    status: 'denied',
     name: 'Marcus Lee',
     dateOfBirth: '1985-12-08',
     discipline: 'DSP',

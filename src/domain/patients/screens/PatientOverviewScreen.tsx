@@ -10,15 +10,15 @@ import { Pill } from '@/components/ui/Pill';
 import { SectionLabel } from '@/components/ui/SectionLabel';
 import { Radius, Shadows, Spacing, type ThemeColor } from '@/constants/Theme';
 import { IncidentReportSheet } from '@/domain/notes/components/IncidentReportSheet';
-import type { IncidentReport } from '@/domain/notes/interfaces/NoteInterfaces';
+import { useIncidentActions, type IncidentDraft } from '@/domain/patients/hooks/useIncidents';
 import { PatientCardShell } from '@/domain/patients/components/PatientCardShell';
 import { PatientMoreList } from '@/domain/patients/components/PatientMoreList';
 import { PatientServices } from '@/domain/patients/components/PatientServices';
 import { PatientStatusPill } from '@/domain/patients/components/PatientStatusPill';
-import { useRoutePatient } from '@/domain/patients/hooks/usePatients';
+import { ResourceGate } from '@/domain/patients/components/ChartListParts';
+import { usePatientResource, useRoutePatient } from '@/domain/patients/hooks/usePatients';
+import { eligibilityPill } from '@/domain/patients/patientInsurance';
 import { ageFrom, patientDob } from '@/domain/patients/patientList';
-import { addPatientIncident } from '@/domain/patients/store/PatientsReducer';
-import { useProfile } from '@/domain/profile/hooks/useProfile';
 import { useTheme } from '@/hooks/useTheme';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
@@ -29,21 +29,19 @@ export default function PatientOverviewScreen() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const tabBarSpace = useTabBarSpace();
-  const provider = useProfile();
   const { patient, chart } = useRoutePatient();
   const incidentSheet = useRef<BottomSheetModal>(null);
+  const incidents = useIncidentActions(patient?.id);
+  const chartState = usePatientResource(patient?.id, 'chart');
 
   if (!patient || !chart) return null;
 
-  const saveIncident = (incident: IncidentReport) => {
-    dispatch(
-      addPatientIncident({
-        patientId: patient.id,
-        incident: { ...incident, reportedBy: provider.name },
-      })
-    );
-    haptics.success();
-    dispatch(setToastMessage({ message: 'Incident reported' }));
+  const eligibility = eligibilityPill(chart.eligibility);
+
+  const saveIncident = async (occurredAt: Date, draft: IncidentDraft) => {
+    const saved = await incidents.report(occurredAt, draft);
+    if (saved) dispatch(setToastMessage({ message: 'Incident reported' }));
+    return saved !== null;
   };
 
   return (
@@ -52,84 +50,90 @@ export default function PatientOverviewScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
         showsVerticalScrollIndicator={false}>
         <SectionLabel title="Overview" />
-        <PatientCardShell>
-          <View style={styles.rows}>
-            <OverviewRow label="Date of birth" first>
-              <ThemedText style={styles.strong}>
-                {patientDob(patient)} · {ageFrom(patient.dateOfBirth)} yrs
-              </ThemedText>
-            </OverviewRow>
-            <OverviewRow label="DDD number">
-              <ThemedText style={styles.strong}>{chart.dddId}</ThemedText>
-            </OverviewRow>
-            <OverviewRow label="Status">
-              <View style={styles.pills}>
-                <PatientStatusPill status={patient.status} />
-                <Pill
-                  label={`${chart.eligibility.eligible ? 'Eligible' : 'Not eligible'} · ${chart.eligibility.payer}`}
-                  dot
-                  color={chart.eligibility.eligible ? 'success' : 'toneRedFg'}
-                  backgroundColor={chart.eligibility.eligible ? 'successMuted' : 'toneRedBg'}
-                />
-              </View>
-            </OverviewRow>
-            <OverviewRow label="Phone">
-              <Pressable
-                accessibilityRole="link"
-                accessibilityLabel={`Call ${patient.phone}`}
-                onPress={() => callPhone(patient.phone)}
-                style={styles.link}>
-                <Icon name={{ ios: 'phone', android: 'call' }} size={20} color={theme.primary} />
-                <ThemedText themeColor="primary" style={styles.strong}>
-                  {patient.phone}
+        <ResourceGate state={chartState}>
+          <PatientCardShell>
+            <View style={styles.rows}>
+              <OverviewRow label="Date of birth" first>
+                <ThemedText style={styles.strong}>
+                  {patientDob(patient)} · {ageFrom(patient.dateOfBirth)} yrs
                 </ThemedText>
-              </Pressable>
-            </OverviewRow>
-            <OverviewRow
-              label="Address"
-              labelIcon={{ ios: 'mappin.circle', android: 'location_on' }}>
-              <Pressable
-                accessibilityRole="link"
-                accessibilityLabel={`Directions to ${patient.address}`}
-                onPress={() => void openDirections(patient.address)}>
-                <ThemedText themeColor="primary" style={[styles.strong, styles.right]}>
-                  {patient.address}
-                </ThemedText>
-              </Pressable>
-            </OverviewRow>
-          </View>
-        </PatientCardShell>
-
-        <SectionLabel title="Diagnosis" style={styles.sectionGap} />
-        <PatientCardShell>
-          {chart.diagnoses.length > 0 ? (
-            chart.diagnoses.map((diagnosis, index) => (
-              <View
-                key={diagnosis.code}
-                style={[
-                  styles.diagnosis,
-                  index > 0 && [styles.divider, { borderTopColor: theme.border }],
-                ]}>
-                <View style={styles.flex}>
-                  <ThemedText style={styles.diagnosisTitle}>
-                    {diagnosis.code} · {diagnosis.description}
-                  </ThemedText>
-                  <ThemedText themeColor="textSecondary" style={styles.diagnosisMeta}>
-                    {diagnosis.rank === 'primary' ? 'Primary diagnosis' : 'Secondary diagnosis'}
-                  </ThemedText>
+              </OverviewRow>
+              <OverviewRow label="DDD number">
+                <ThemedText style={styles.strong}>{chart.dddId}</ThemedText>
+              </OverviewRow>
+              <OverviewRow label="Status">
+                <View style={styles.pills}>
+                  <PatientStatusPill patient={patient} />
+                  {eligibility ? (
+                    <Pill
+                      label={[eligibility.label, chart.eligibility.payer]
+                        .filter(Boolean)
+                        .join(' · ')}
+                      dot
+                      color={eligibility.color}
+                      backgroundColor={eligibility.background}
+                    />
+                  ) : null}
                 </View>
-                <Pill label={diagnosis.rank === 'primary' ? 'Primary' : 'Secondary'} dot />
-              </View>
-            ))
-          ) : (
-            <ThemedText themeColor="textSecondary" style={styles.empty}>
-              No diagnosis on file.
-            </ThemedText>
-          )}
-        </PatientCardShell>
+              </OverviewRow>
+              <OverviewRow label="Phone">
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel={`Call ${patient.phone}`}
+                  onPress={() => callPhone(patient.phone)}
+                  style={styles.link}>
+                  <Icon name={{ ios: 'phone', android: 'call' }} size={20} color={theme.primary} />
+                  <ThemedText themeColor="primary" style={styles.strong}>
+                    {patient.phone}
+                  </ThemedText>
+                </Pressable>
+              </OverviewRow>
+              <OverviewRow
+                label="Address"
+                labelIcon={{ ios: 'mappin.circle', android: 'location_on' }}>
+                <Pressable
+                  accessibilityRole="link"
+                  accessibilityLabel={`Directions to ${patient.address}`}
+                  onPress={() => void openDirections(patient.address)}>
+                  <ThemedText themeColor="primary" style={[styles.strong, styles.right]}>
+                    {patient.address}
+                  </ThemedText>
+                </Pressable>
+              </OverviewRow>
+            </View>
+          </PatientCardShell>
 
-        <SectionLabel title={`Services · ${chart.services.length}`} style={styles.sectionGap} />
-        <PatientServices services={chart.services} />
+          <SectionLabel title="Diagnosis" style={styles.sectionGap} />
+          <PatientCardShell>
+            {chart.diagnoses.length > 0 ? (
+              chart.diagnoses.map((diagnosis, index) => (
+                <View
+                  key={diagnosis.code}
+                  style={[
+                    styles.diagnosis,
+                    index > 0 && [styles.divider, { borderTopColor: theme.border }],
+                  ]}>
+                  <View style={styles.flex}>
+                    <ThemedText style={styles.diagnosisTitle}>
+                      {diagnosis.code} · {diagnosis.description}
+                    </ThemedText>
+                    <ThemedText themeColor="textSecondary" style={styles.diagnosisMeta}>
+                      {diagnosis.rank === 'primary' ? 'Primary diagnosis' : 'Secondary diagnosis'}
+                    </ThemedText>
+                  </View>
+                  <Pill label={diagnosis.rank === 'primary' ? 'Primary' : 'Secondary'} dot />
+                </View>
+              ))
+            ) : (
+              <ThemedText themeColor="textSecondary" style={styles.empty}>
+                No diagnosis on file.
+              </ThemedText>
+            )}
+          </PatientCardShell>
+
+          <SectionLabel title={`Services · ${chart.services.length}`} style={styles.sectionGap} />
+          <PatientServices services={chart.services} />
+        </ResourceGate>
 
         <SectionLabel title="Quick actions" style={styles.sectionGap} />
         <View style={styles.actions}>
@@ -163,7 +167,7 @@ export default function PatientOverviewScreen() {
         <SectionLabel title="More" style={styles.sectionGap} />
         <PatientMoreList patient={patient} chart={chart} />
       </ScrollView>
-      <IncidentReportSheet ref={incidentSheet} onSave={saveIncident} />
+      <IncidentReportSheet ref={incidentSheet} saveLabel="Report incident" onSave={saveIncident} />
     </>
   );
 }

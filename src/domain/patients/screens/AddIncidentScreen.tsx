@@ -1,4 +1,3 @@
-import { nanoid } from '@reduxjs/toolkit';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet } from 'react-native';
@@ -10,29 +9,27 @@ import { Select } from '@/components/ui/Select';
 import { TextField } from '@/components/ui/TextField';
 import { Radius, Spacing } from '@/constants/Theme';
 import { INCIDENT_LOCATIONS, INCIDENT_TYPES, INJURY_SIDES } from '@/domain/patients/clinicalStyles';
-import { addPatientIncident } from '@/domain/patients/store/PatientsReducer';
+import { useIncidentActions } from '@/domain/patients/hooks/useIncidents';
+import type {
+  ApiIncidentLocation,
+  ApiIncidentType,
+  ApiInjurySide,
+} from '@/domain/patients/interfaces/PatientApi';
 import { ModalFormLayout } from '@/domain/profile/components/ModalFormLayout';
-import { useProfile } from '@/domain/profile/hooks/useProfile';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
 import { haptics } from '@/utils/haptics';
 
-const toOptions = <T extends string>(values: readonly T[]) =>
-  values.map((value) => ({ value, label: value }));
-
-const TYPE_OPTIONS = toOptions(INCIDENT_TYPES);
-const LOCATION_OPTIONS = toOptions(INCIDENT_LOCATIONS);
-const INJURY_OPTIONS = toOptions(INJURY_SIDES);
-
 export default function AddIncidentScreen() {
   const dispatch = useAppDispatch();
   const { patientId } = useLocalSearchParams<{ patientId: string }>();
-  const profile = useProfile();
+  const incidents = useIncidentActions(patientId);
   const [occurredAt, setOccurredAt] = useState(() => new Date());
-  const [type, setType] = useState<(typeof INCIDENT_TYPES)[number]>('Fall');
-  const [location, setLocation] = useState<(typeof INCIDENT_LOCATIONS)[number]>('Group home');
-  const [injury, setInjury] = useState<(typeof INJURY_SIDES)[number]>('No injury');
+  const [type, setType] = useState<ApiIncidentType>('fall');
+  const [location, setLocation] = useState<ApiIncidentLocation>('');
+  const [injury, setInjury] = useState<ApiInjurySide>('none');
+  const [saving, setSaving] = useState(false);
   const [witnessedBy, setWitnessedBy] = useState('');
   const [description, setDescription] = useState('');
   const [actionTaken, setActionTaken] = useState('');
@@ -53,31 +50,24 @@ export default function AddIncidentScreen() {
         )
     );
 
-  const report = () => {
+  const report = async () => {
     if (!description.trim()) {
       setShowErrors(true);
       haptics.error();
       return;
     }
-    // TODO: send to the incidents API (and notify the back office) once it exists.
-    dispatch(
-      addPatientIncident({
-        patientId,
-        incident: {
-          id: nanoid(),
-          occurredAt: occurredAt.toISOString(),
-          description: description.trim(),
-          reportedBy: profile.name,
-          type,
-          location,
-          injury,
-          witnessedBy: witnessedBy.trim() || undefined,
-          actionTaken: actionTaken.trim() || undefined,
-          notifyOffice,
-        },
-      })
-    );
-    haptics.success();
+    setSaving(true);
+    const saved = await incidents.report(occurredAt, {
+      type,
+      location,
+      injury_side: injury,
+      witnessed_by: witnessedBy.trim(),
+      what_happened: description.trim(),
+      action_taken: actionTaken.trim(),
+      notify_back_office: notifyOffice,
+    });
+    setSaving(false);
+    if (!saved) return;
     dispatch(setToastMessage({ message: 'Incident reported' }));
     leave();
   };
@@ -91,9 +81,10 @@ export default function AddIncidentScreen() {
             title="Cancel"
             variant="secondary"
             style={styles.cancel}
+            disabled={saving}
             onPress={() => router.back()}
           />
-          <Button title="Report incident" style={styles.save} onPress={report} />
+          <Button title="Report incident" style={styles.save} loading={saving} onPress={report} />
         </>
       }>
       <DateTimeField
@@ -104,11 +95,16 @@ export default function AddIncidentScreen() {
         onChange={setDay}
       />
       <DateTimeField label="Time" mode="time" value={occurredAt} onChange={setOccurredAt} />
-      <Select label="Type" required options={TYPE_OPTIONS} value={type} onChange={setType} />
-      <Select label="Location" options={LOCATION_OPTIONS} value={location} onChange={setLocation} />
+      <Select label="Type" required options={INCIDENT_TYPES} value={type} onChange={setType} />
+      <Select
+        label="Location"
+        options={INCIDENT_LOCATIONS}
+        value={location}
+        onChange={setLocation}
+      />
       <Select
         label="Injury side (body diagram)"
-        options={INJURY_OPTIONS}
+        options={INJURY_SIDES}
         value={injury}
         onChange={setInjury}
       />

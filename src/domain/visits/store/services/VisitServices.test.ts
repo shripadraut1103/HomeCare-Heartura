@@ -13,6 +13,10 @@ describe('appointmentList', () => {
     ).toEqual([appointment]);
   });
 
+  it('wraps a single created appointment in a list', () => {
+    expect(appointmentList(appointment)).toEqual([appointment]);
+  });
+
   it('treats anything else as no visits instead of crashing', () => {
     expect(appointmentList({ detail: 'odd' })).toEqual([]);
     expect(appointmentList(null)).toEqual([]);

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
@@ -6,6 +7,11 @@ import { Spacing } from '@/constants/Theme';
 import { INCIDENT_STATUS } from '@/domain/patients/clinicalStyles';
 import { EMPTY_VALUE, EmptyRow, StatusPill } from '@/domain/patients/components/ChartListParts';
 import { DetailGrid, ExpandableRow, ROW_ACCENTS } from '@/domain/patients/components/ExpandableRow';
+import {
+  IncidentCommentSheet,
+  type IncidentCommentSheetData,
+} from '@/domain/patients/components/IncidentCommentSheet';
+import { useIncidentActions } from '@/domain/patients/hooks/useIncidents';
 import { PatientCardShell } from '@/domain/patients/components/PatientCardShell';
 import type { PatientIncident } from '@/domain/patients/interfaces/PatientInterfaces';
 import { disciplineCode } from '@/domain/patients/patientRecords';
@@ -13,6 +19,8 @@ import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
 import { VISIT_STATUS } from '@/domain/visits/visitStatus';
 import { useExpandedSet } from '@/hooks/useExpandedSet';
 import { useTheme } from '@/hooks/useTheme';
+import { setToastMessage } from '@/store/common-reducer/ToastReducer';
+import { useAppDispatch } from '@/store/hooks';
 import { formatNumericDate, formatTime } from '@/utils/dateFormat';
 
 const COLLAPSED_COUNT = 4;
@@ -89,8 +97,38 @@ export function AppointmentList({ visits }: { visits: readonly Visit[] }) {
   );
 }
 
-export function IncidentList({ incidents }: { incidents: readonly PatientIncident[] }) {
+type IncidentAction = 'acknowledged' | 'closed';
+
+const ACTION_DONE: Record<IncidentAction, string> = {
+  acknowledged: 'Incident acknowledged',
+  closed: 'Incident closed',
+};
+
+export function IncidentList({
+  patientId,
+  incidents,
+}: {
+  patientId: string;
+  incidents: readonly PatientIncident[];
+}) {
+  const dispatch = useAppDispatch();
   const { expanded, toggle } = useExpandedSet();
+  const actions = useIncidentActions(patientId);
+  const commentSheet = useRef<BottomSheetModal<IncidentCommentSheetData>>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const setStatus = async (incident: PatientIncident, status: IncidentAction) => {
+    setBusy(`${incident.id}:${status}`);
+    const saved = await actions.update(incident, { status });
+    setBusy(null);
+    if (saved) dispatch(setToastMessage({ message: ACTION_DONE[status] }));
+  };
+
+  const saveComment = async (incident: PatientIncident, comment: string) => {
+    const saved = await actions.update(incident, { comment });
+    if (saved) dispatch(setToastMessage({ message: 'Comment saved' }));
+    return saved;
+  };
 
   return (
     <PatientCardShell>
@@ -124,12 +162,43 @@ export function IncidentList({ incidents }: { incidents: readonly PatientInciden
                   ...(incident.actionTaken
                     ? [{ label: 'Action taken', value: incident.actionTaken }]
                     : []),
+                  ...(incident.comment ? [{ label: 'Comment', value: incident.comment }] : []),
                 ]}
               />
+              {incident.status !== 'closed' ? (
+                <View style={styles.actions}>
+                  {incident.status === 'open' ? (
+                    <Button
+                      title="Acknowledge"
+                      variant="secondary"
+                      size="small"
+                      disabled={busy !== null}
+                      loading={busy === `${incident.id}:acknowledged`}
+                      onPress={() => setStatus(incident, 'acknowledged')}
+                    />
+                  ) : null}
+                  <Button
+                    title="Comment"
+                    variant="secondary"
+                    size="small"
+                    disabled={busy !== null}
+                    onPress={() => commentSheet.current?.present({ incident })}
+                  />
+                  <Button
+                    title="Close incident"
+                    variant="secondary"
+                    size="small"
+                    disabled={busy !== null}
+                    loading={busy === `${incident.id}:closed`}
+                    onPress={() => setStatus(incident, 'closed')}
+                  />
+                </View>
+              ) : null}
             </ExpandableRow>
           );
         })
       )}
+      <IncidentCommentSheet ref={commentSheet} onSave={saveComment} />
     </PatientCardShell>
   );
 }
@@ -139,5 +208,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.two,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.two,
+    paddingTop: Spacing.three,
   },
 });

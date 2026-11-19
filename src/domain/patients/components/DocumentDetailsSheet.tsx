@@ -1,5 +1,5 @@
 import { BottomSheetView, useBottomSheetModal, type BottomSheetModal } from '@gorhom/bottom-sheet';
-import type { Ref } from 'react';
+import { useState, type Ref } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,14 +10,14 @@ import { DetailRow } from '@/components/ui/DetailRow';
 import { Pill } from '@/components/ui/Pill';
 import { Spacing } from '@/constants/Theme';
 import type { PatientDocument } from '@/domain/patients/interfaces/PatientInterfaces';
-import { DOCUMENT_STATUS } from '@/domain/patients/patientDocuments';
+import { documentStatusPill } from '@/domain/patients/patientDocuments';
 import { useTheme } from '@/hooks/useTheme';
 
 export type DocumentDetailsSheetData = { document: PatientDocument };
 
 type DocumentDetailsSheetProps = {
   ref: Ref<BottomSheetModal<DocumentDetailsSheetData>>;
-  onOpenFile: (document: PatientDocument) => void;
+  onOpenFile: (document: PatientDocument) => Promise<void>;
 };
 
 export function DocumentDetailsSheet({ ref, onOpenFile }: DocumentDetailsSheetProps) {
@@ -35,7 +35,14 @@ function DetailsContent({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { dismiss } = useBottomSheetModal();
-  const status = DOCUMENT_STATUS[document.status];
+  const status = documentStatusPill(document);
+  const [opening, setOpening] = useState(false);
+
+  const openFile = async () => {
+    setOpening(true);
+    await onOpenFile(document);
+    setOpening(false);
+  };
 
   return (
     <BottomSheetView style={{ paddingBottom: insets.bottom + Spacing.three }}>
@@ -58,7 +65,9 @@ function DetailsContent({
           title="Open file"
           variant="secondary"
           style={styles.flex}
-          onPress={() => onOpenFile(document)}
+          loading={opening}
+          disabled={opening}
+          onPress={() => void openFile()}
         />
         <Button title="Done" style={styles.flex} onPress={() => dismiss()} />
       </View>

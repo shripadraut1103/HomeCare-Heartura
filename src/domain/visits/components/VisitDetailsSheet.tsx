@@ -3,6 +3,7 @@ import {
   useBottomSheetModal,
   type BottomSheetModal,
 } from '@gorhom/bottom-sheet';
+import { router } from 'expo-router';
 import { useRef, type Ref } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +20,10 @@ import {
   ChangeStatusSheet,
   type ChangeStatusSheetData,
 } from '@/domain/visits/components/ChangeStatusSheet';
+import {
+  RescheduleSheet,
+  type RescheduleSheetData,
+} from '@/domain/visits/components/RescheduleSheet';
 import { useVisit } from '@/domain/visits/hooks/useVisits';
 import type { Visit } from '@/domain/visits/interfaces/VisitInterfaces';
 import { VISIT_STATUS } from '@/domain/visits/visitStatus';
@@ -33,8 +38,14 @@ export type VisitDetailsSheetData = { visitId: string };
 
 export function VisitDetailsSheet({ ref }: { ref: Ref<BottomSheetModal<VisitDetailsSheetData>> }) {
   const changeStatusSheet = useRef<BottomSheetModal<ChangeStatusSheetData>>(null);
+  const rescheduleSheet = useRef<BottomSheetModal<RescheduleSheetData>>(null);
   const changeStatus = (visit: Visit) =>
-    changeStatusSheet.current?.present({ visitId: visit.id, status: visit.status });
+    changeStatusSheet.current?.present({
+      visitId: visit.id,
+      status: visit.status,
+      version: visit.version,
+    });
+  const reschedule = (visit: Visit) => rescheduleSheet.current?.present({ visitId: visit.id });
 
   return (
     <>
@@ -44,10 +55,15 @@ export function VisitDetailsSheet({ ref }: { ref: Ref<BottomSheetModal<VisitDeta
         enableDynamicSizing={false}>
         {/* The sheet calls this as a plain function, so render the content as its own component. */}
         {({ data }) => (
-          <VisitDetailsContent visitId={data?.visitId} onChangeStatus={changeStatus} />
+          <VisitDetailsContent
+            visitId={data?.visitId}
+            onChangeStatus={changeStatus}
+            onReschedule={reschedule}
+          />
         )}
       </AppBottomSheet>
       <ChangeStatusSheet ref={changeStatusSheet} />
+      <RescheduleSheet ref={rescheduleSheet} />
     </>
   );
 }
@@ -55,9 +71,10 @@ export function VisitDetailsSheet({ ref }: { ref: Ref<BottomSheetModal<VisitDeta
 type VisitDetailsContentProps = {
   visitId: string | undefined;
   onChangeStatus: (visit: Visit) => void;
+  onReschedule: (visit: Visit) => void;
 };
 
-function VisitDetailsContent({ visitId, onChangeStatus }: VisitDetailsContentProps) {
+function VisitDetailsContent({ visitId, onChangeStatus, onReschedule }: VisitDetailsContentProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { dismiss } = useBottomSheetModal();
@@ -66,6 +83,11 @@ function VisitDetailsContent({ visitId, onChangeStatus }: VisitDetailsContentPro
   if (!visit) return null;
 
   const status = VISIT_STATUS[visit.status];
+  const canMove = visit.status === 'scheduled' && Boolean(visit.booking && visit.version);
+  const edit = () => {
+    dismiss();
+    router.push({ pathname: '/schedule-appointment', params: { visitId: visit.id } });
+  };
 
   return (
     <View style={styles.container}>
@@ -154,6 +176,30 @@ function VisitDetailsContent({ visitId, onChangeStatus }: VisitDetailsContentPro
             icon={<Icon name={{ ios: 'phone', android: 'call' }} size={20} color={theme.text} />}
           />
         </View>
+        {canMove ? (
+          <View style={styles.moveActions}>
+            <Button
+              title="Reschedule"
+              variant="secondary"
+              style={styles.flex}
+              onPress={() => onReschedule(visit)}
+              icon={
+                <Icon
+                  name={{ ios: 'calendar.badge.clock', android: 'event_repeat' }}
+                  size={20}
+                  color={theme.text}
+                />
+              }
+            />
+            <Button
+              title="Edit"
+              variant="secondary"
+              style={styles.flex}
+              onPress={edit}
+              icon={<Icon name={{ ios: 'pencil', android: 'edit' }} size={20} color={theme.text} />}
+            />
+          </View>
+        ) : null}
       </BottomSheetScrollView>
 
       <View
@@ -264,6 +310,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.three,
     paddingTop: Spacing.four,
+  },
+  moveActions: {
+    flexDirection: 'row',
+    gap: Spacing.three,
+    paddingTop: Spacing.three,
   },
   footer: {
     flexDirection: 'row',

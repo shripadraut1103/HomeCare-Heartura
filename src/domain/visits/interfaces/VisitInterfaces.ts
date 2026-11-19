@@ -1,6 +1,19 @@
 export type VisitStatus =
   'scheduled' | 'inProgress' | 'completed' | 'cancelled' | 'noShow' | 'rescheduled';
 
+export interface VisitBooking {
+  providerId: string;
+  serviceCode: string;
+  visitType: string;
+  placeOfService: string;
+  addressId: string | null;
+  payer: string;
+  date: string;
+  startTime: string;
+  notes: string;
+  rescheduledTo: string | null;
+}
+
 export interface Visit {
   id: string;
   version?: number;
@@ -27,4 +40,5 @@ export interface Visit {
   notes?: string;
   documents?: string;
   outcome?: string;
+  booking?: VisitBooking;
 }

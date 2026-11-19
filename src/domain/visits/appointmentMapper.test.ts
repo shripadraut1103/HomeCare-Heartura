@@ -91,6 +91,21 @@ describe('appointmentMapper', () => {
     });
   });
 
+  it('keeps the codes a reschedule or edit sends back', () => {
+    expect(toVisit({ ...appointment, start_time: '09:30:00' }).booking).toEqual({
+      providerId: 'm1',
+      serviceCode: 'S8990',
+      visitType: 'daily',
+      placeOfService: '12',
+      addressId: 'ad1',
+      payer: 'medicaid',
+      date: '2026-11-18',
+      startTime: '09:30',
+      notes: '',
+      rescheduledTo: null,
+    });
+  });
+
   it('falls back to the patient’s address and keeps unknown statuses scheduled', () => {
     const visit = toVisit({ ...appointment, address: null, status: 'something_new' });
     expect(visit.address).toBe('512 Prospect Ave, Hackensack, NJ 07601');

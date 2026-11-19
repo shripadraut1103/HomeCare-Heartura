@@ -16,8 +16,14 @@ import { Pill } from '@/components/ui/Pill';
 import { Spacing } from '@/constants/Theme';
 import { SEVERITY } from '@/domain/patients/clinicalStyles';
 import { PatientStatusPill } from '@/domain/patients/components/PatientStatusPill';
-import { usePatient, usePatientChart } from '@/domain/patients/hooks/usePatients';
+import { ResourceGate } from '@/domain/patients/components/ChartListParts';
+import {
+  usePatient,
+  usePatientChart,
+  usePatientResource,
+} from '@/domain/patients/hooks/usePatients';
 import type { Patient, PatientChart } from '@/domain/patients/interfaces/PatientInterfaces';
+import { eligibilityPill } from '@/domain/patients/patientInsurance';
 import { ageFrom, patientDob } from '@/domain/patients/patientList';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -55,12 +61,21 @@ function InfoContent({ patientId, kind }: PatientInfoSheetData) {
   const { dismiss } = useBottomSheetModal();
   const patient = usePatient(patientId);
   const chart = usePatientChart(patientId);
+  const notes = usePatientResource(patientId, 'notes', kind === 'notes');
 
   return (
     <View>
       <SheetHeader title={TITLES[kind]} onClose={() => dismiss()} />
       <BottomSheetScrollView contentContainerStyle={styles.body}>
-        {patient && chart ? <InfoBody kind={kind} patient={patient} chart={chart} /> : null}
+        {patient && chart ? (
+          kind === 'notes' ? (
+            <ResourceGate state={notes}>
+              <InfoBody kind={kind} patient={patient} chart={chart} />
+            </ResourceGate>
+          ) : (
+            <InfoBody kind={kind} patient={patient} chart={chart} />
+          )
+        ) : null}
       </BottomSheetScrollView>
       <View
         style={[
@@ -94,7 +109,7 @@ function InfoBody({
           <DetailRow label="Preferred language">{chart.language}</DetailRow>
           <DetailRow label="DDD ID">{chart.dddId}</DetailRow>
           <DetailRow label="Status">
-            <PatientStatusPill status={patient.status} />
+            <PatientStatusPill patient={patient} />
           </DetailRow>
           <DetailRow label="Guardian" isLast>
             {chart.guardian}
@@ -118,8 +133,15 @@ function InfoBody({
     case 'contact':
       return (
         <View>
-          <DetailRow label="Primary">{patient.address}</DetailRow>
-          {chart.secondAddress ? <DetailRow label="Second">{chart.secondAddress}</DetailRow> : null}
+          {chart.addresses?.length ? (
+            chart.addresses.map((address, index) => (
+              <DetailRow key={`${address.label}-${index}`} label={address.label}>
+                {address.line}
+              </DetailRow>
+            ))
+          ) : (
+            <DetailRow label="Primary">{patient.address}</DetailRow>
+          )}
           <DetailRow label="Phone" isLast={!chart.email}>
             {chart.phones.join('  ')}
           </DetailRow>
@@ -156,17 +178,22 @@ function InfoBody({
       ) : (
         <Empty text="No known allergies." />
       );
-    case 'insurance':
+    case 'insurance': {
+      const eligibility = eligibilityPill(chart.eligibility);
       return (
         <View>
           <DetailRow label="Primary">{chart.insurance.primary}</DetailRow>
           <DetailRow label="Eligibility" isLast={!chart.insurance.secondary}>
-            <Pill
-              label={chart.eligibility.eligible ? 'Eligible' : 'Not eligible'}
-              dot
-              color={chart.eligibility.eligible ? 'success' : 'toneRedFg'}
-              backgroundColor={chart.eligibility.eligible ? 'successMuted' : 'toneRedBg'}
-            />
+            {eligibility ? (
+              <Pill
+                label={eligibility.label}
+                dot
+                color={eligibility.color}
+                backgroundColor={eligibility.background}
+              />
+            ) : (
+              '—'
+            )}
           </DetailRow>
           {chart.insurance.secondary ? (
             <DetailRow label="Secondary" isLast>
@@ -175,6 +202,7 @@ function InfoBody({
           ) : null}
         </View>
       );
+    }
     case 'notes':
       return chart.notes.length > 0 ? (
         <View style={styles.list}>

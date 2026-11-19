@@ -1,28 +1,16 @@
-import {
-  BottomSheetTextInput,
-  BottomSheetView,
-  useBottomSheetModal,
-  type BottomSheetModal,
-} from '@gorhom/bottom-sheet';
-import { useState, type Ref } from 'react';
-import type { Control } from 'react-hook-form';
+import { BottomSheetView, useBottomSheetModal, type BottomSheetModal } from '@gorhom/bottom-sheet';
+import type { Ref } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppBottomSheet } from '@/components/sheet/AppBottomSheet';
 import { SheetHeader } from '@/components/sheet/SheetHeader';
 import { Button } from '@/components/ui/Button';
-import { FormTextField } from '@/components/ui/FormTextField';
-import { PasswordVisibilityToggle } from '@/components/ui/PasswordVisibilityToggle';
-import type { TextFieldProps } from '@/components/ui/TextField';
 import { Spacing } from '@/constants/Theme';
 import { PasswordRules } from '@/domain/profile/components/PasswordRules';
+import { SheetPasswordField } from '@/domain/profile/components/PasswordField';
 import { useChangePasswordForm } from '@/domain/profile/hooks/useChangePasswordForm';
-import type { ChangePasswordFormValues } from '@/domain/profile/schemas/changePasswordSchema';
 import { useTheme } from '@/hooks/useTheme';
-
-// Its ref type also allows `undefined`; the instance is still a regular TextInput.
-const SheetTextInput = BottomSheetTextInput as NonNullable<TextFieldProps['InputComponent']>;
 
 export function ChangePasswordSheet({ ref }: { ref: Ref<BottomSheetModal> }) {
   return (
@@ -49,7 +37,7 @@ function ChangePasswordContent() {
       <SheetHeader title="Change password" onClose={close} />
 
       <View style={styles.body}>
-        <PasswordField
+        <SheetPasswordField
           control={control}
           name="currentPassword"
           label="Current password"
@@ -59,7 +47,7 @@ function ChangePasswordContent() {
           onSubmitEditing={() => focusField('newPassword')}
         />
         <View style={styles.newPassword}>
-          <PasswordField
+          <SheetPasswordField
             control={control}
             name="newPassword"
             label="New password"
@@ -70,7 +58,7 @@ function ChangePasswordContent() {
           />
           <PasswordRules password={newPassword} />
         </View>
-        <PasswordField
+        <SheetPasswordField
           control={control}
           name="confirmPassword"
           label="Confirm new password"
@@ -94,38 +82,6 @@ function ChangePasswordContent() {
   );
 }
 
-type PasswordFieldProps = Omit<TextFieldProps, 'value' | 'onChangeText' | 'error' | 'ref'> & {
-  control: Control<ChangePasswordFormValues>;
-  name: keyof ChangePasswordFormValues;
-};
-
-/** Password input with a show / hide toggle. */
-function PasswordField({ control, name, label, ...fieldProps }: PasswordFieldProps) {
-  const [visible, setVisible] = useState(false);
-
-  return (
-    <FormTextField
-      {...fieldProps}
-      control={control}
-      name={name}
-      label={label}
-      labelStyle={styles.label}
-      InputComponent={SheetTextInput}
-      secureTextEntry={!visible}
-      autoCapitalize="none"
-      autoCorrect={false}
-      style={styles.input}
-      accessory={
-        <PasswordVisibilityToggle
-          label={label}
-          visible={visible}
-          onToggle={() => setVisible((current) => !current)}
-        />
-      }
-    />
-  );
-}
-
 const styles = StyleSheet.create({
   body: {
     gap: Spacing.four,
@@ -133,13 +89,6 @@ const styles = StyleSheet.create({
   },
   newPassword: {
     gap: Spacing.three - Spacing.one,
-  },
-  label: {
-    fontWeight: 500,
-  },
-  input: {
-    minHeight: 48,
-    paddingRight: Spacing.six,
   },
   footer: {
     flexDirection: 'row',
