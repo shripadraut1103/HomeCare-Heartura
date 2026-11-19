@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { EnvConfig } from '@/config/EnvConfig';
 import type { Patient, PatientChart } from '@/domain/patients/interfaces/PatientInterfaces';
-import { MOCK_PATIENTS } from '@/domain/patients/mocks/PatientMocks';
 import { toApiStatus } from '@/domain/patients/patientMapper';
 import type { StatusFilter } from '@/domain/patients/patientList';
 import {
@@ -29,15 +28,11 @@ const selectListPatients = createSelector(
 );
 
 export function usePatients(): readonly Patient[] {
-  const loaded = useAppSelector(selectAllPatients);
-  return apiMode() ? loaded : MOCK_PATIENTS;
+  return useAppSelector(selectAllPatients);
 }
 
 export function usePatient(patientId: string | null | undefined) {
-  const loaded = useAppSelector((state) =>
-    patientId ? state.patients.byId[patientId] : undefined
-  );
-  return apiMode() ? loaded : MOCK_PATIENTS.find((patient) => patient.id === patientId);
+  return useAppSelector((state) => (patientId ? state.patients.byId[patientId] : undefined));
 }
 
 export function usePatientChart(patientId: string | null | undefined): PatientChart | undefined {

@@ -11,7 +11,6 @@ import type {
   PatientIncident,
   PatientsState,
 } from '@/domain/patients/interfaces/PatientInterfaces';
-import { MOCK_PATIENT_CHARTS } from '@/domain/patients/mocks/PatientChartMocks';
 import { toChart, toPatient } from '@/domain/patients/patientMapper';
 import {
   fetchPatientAction,
@@ -25,7 +24,7 @@ const initialState: PatientsState = {
   byId: {},
   list: { ids: [], count: 0, page: 0, hasMore: false, loading: false, error: null },
   detailError: null,
-  charts: MOCK_PATIENT_CHARTS,
+  charts: {},
 };
 
 const savePatient = (state: PatientsState, api: ApiPatient) => {

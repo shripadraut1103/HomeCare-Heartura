@@ -12,21 +12,15 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { SearchField } from '@/components/ui/SearchField';
-import { EnvConfig } from '@/config/EnvConfig';
 import { Radius, Spacing } from '@/constants/Theme';
 import { PatientCard } from '@/domain/patients/components/PatientCard';
 import {
   PatientFilterSheet,
   type PatientFilterSheetData,
 } from '@/domain/patients/components/PatientFilterSheet';
-import { usePatientList, usePatients } from '@/domain/patients/hooks/usePatients';
+import { usePatientList } from '@/domain/patients/hooks/usePatients';
 import type { Patient, PatientSort } from '@/domain/patients/interfaces/PatientInterfaces';
-import {
-  countByStatus,
-  PATIENT_STATUS,
-  visiblePatients,
-  type StatusFilter,
-} from '@/domain/patients/patientList';
+import { PATIENT_STATUS, visiblePatients, type StatusFilter } from '@/domain/patients/patientList';
 import { useProfile } from '@/domain/profile/hooks/useProfile';
 import { useTheme } from '@/hooks/useTheme';
 import { haptics } from '@/utils/haptics';
@@ -42,21 +36,15 @@ export default function PatientsScreen() {
   const theme = useTheme();
   const tabBarSpace = useTabBarSpace();
   const { agency } = useProfile();
-  const fromApi = Boolean(EnvConfig.apiUrl);
-  const mockPatients = usePatients();
   const filterSheet = useRef<BottomSheetModal<PatientFilterSheetData>>(null);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('active');
   const [sort, setSort] = useState<PatientSort>('name');
   const server = usePatientList(query, status);
 
-  const counts = fromApi ? undefined : countByStatus(mockPatients);
-  const visible = fromApi
-    ? visiblePatients(server.patients, 'all', '', sort)
-    : visiblePatients(mockPatients, status, query, sort);
-  const total = fromApi ? server.count : visible.length;
-  const loading = fromApi && server.loading;
-  const error = fromApi ? server.error : null;
+  const visible = visiblePatients(server.patients, 'all', '', sort);
+  const total = server.count;
+  const { loading, error } = server;
   const statusLabel = status === 'all' ? 'all' : PATIENT_STATUS[status].label;
   const filtered = status !== 'active';
 
@@ -81,7 +69,6 @@ export default function PatientsScreen() {
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.subtitle}>
             {agency.name}
-            {fromApi ? '' : ` • ${mockPatients.length} patients`}
           </ThemedText>
         </View>
 
@@ -97,7 +84,7 @@ export default function PatientsScreen() {
             accessibilityLabel={`Filter patients, showing ${statusLabel}`}
             onPress={() => {
               haptics.tap();
-              filterSheet.current?.present({ status, counts });
+              filterSheet.current?.present({ status });
             }}
             style={({ pressed }) => [
               styles.filter,
@@ -142,7 +129,7 @@ export default function PatientsScreen() {
           onEndReached={server.loadMore}
           onEndReachedThreshold={0.5}
           refreshing={false}
-          onRefresh={fromApi ? server.refresh : undefined}
+          onRefresh={server.refresh}
           ListFooterComponent={
             loading && visible.length > 0 ? <ActivityIndicator style={styles.footer} /> : undefined
           }

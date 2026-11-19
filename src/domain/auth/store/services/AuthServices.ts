@@ -1,13 +1,11 @@
-import { callApi, serviceError } from '@/config/ApiError';
+import { callApi } from '@/config/ApiError';
 import { get, post } from '@/config/AxiosConfig';
-import { EnvConfig } from '@/config/EnvConfig';
 import type {
   AuthMe,
   LoginResponse,
   SignedIn,
   TwoFactorRequired,
 } from '@/domain/auth/interfaces/AuthInterfaces';
-import { MOCK_CREDENTIALS, MOCK_ME } from '@/domain/auth/mocks/AuthMocks';
 import type { LoginFormValues } from '@/domain/auth/schemas/loginSchema';
 import type { ServiceResult } from '@/types/ServiceInterfaces';
 
@@ -29,16 +27,12 @@ export const AUTH_ENDPOINTS = {
  */
 class AuthService {
   async login(data: LoginFormValues): Promise<ServiceResult<LoginResponse>> {
-    if (EnvConfig.apiUrl) {
-      return callApi(() =>
-        post<LoginResponse>(AUTH_ENDPOINTS.login, {
-          email: data.email.trim(),
-          password: data.password,
-        })
-      );
-    }
-
-    return serviceError('AUTH_FAILED', 'Incorrect email or password.', 401);
+    return callApi(() =>
+      post<LoginResponse>(AUTH_ENDPOINTS.login, {
+        email: data.email.trim(),
+        password: data.password,
+      })
+    );
   }
 
   async verifyTwoFactor(challengeId: string, code: string): Promise<ServiceResult<SignedIn>> {
@@ -54,34 +48,24 @@ class AuthService {
   }
 
   async requestPasswordReset(email: string): Promise<ServiceResult<{ detail: string }>> {
-    if (EnvConfig.apiUrl) {
-      return callApi(() =>
-        post<{ detail: string }>(AUTH_ENDPOINTS.forgotPassword, { email: email.trim() })
-      );
-    }
-    // TEMPORARY: always reports success while no API URL is configured.
-    return { data: { detail: 'Reset link sent.' } };
+    return callApi(() =>
+      post<{ detail: string }>(AUTH_ENDPOINTS.forgotPassword, { email: email.trim() })
+    );
   }
 
   async logout(refresh: string): Promise<ServiceResult<null>> {
-    if (EnvConfig.apiUrl) {
-      return callApi(async () => {
-        await post(AUTH_ENDPOINTS.logout, { refresh });
-        return null;
-      });
-    }
-    return { data: null };
+    return callApi(async () => {
+      await post(AUTH_ENDPOINTS.logout, { refresh });
+      return null;
+    });
   }
 
   async getMe(): Promise<ServiceResult<AuthMe>> {
-    if (EnvConfig.apiUrl) {
-      return callApi(() => get<AuthMe>(AUTH_ENDPOINTS.me));
-    }
-    // TEMPORARY: mock profile while no API URL is configured (see AuthMocks.ts).
-    return { data: MOCK_ME };
+    return callApi(() => get<AuthMe>(AUTH_ENDPOINTS.me));
   }
 
-  async changePassword(data: {
+  // TODO: call the change password endpoint once the backend shares it.
+  async changePassword(_data: {
     currentPassword: string;
     newPassword: string;
   }): Promise<ServiceResult<null>> {
@@ -92,10 +76,6 @@ class AuthService {
     // } catch (error) {
     //   return { error: getErrorMessage(error), status: <HTTP status from error> };
     // }
-    // TEMPORARY: checks against the mock user until the API exists (see AuthMocks.ts).
-    if (data.currentPassword !== MOCK_CREDENTIALS.password) {
-      return serviceError('AUTH_FAILED', 'Your current password is incorrect.', 401);
-    }
     return { data: null };
   }
 }

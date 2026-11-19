@@ -13,7 +13,6 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Icon } from '@/components/ui/Icon';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-import { EnvConfig } from '@/config/EnvConfig';
 import { Spacing } from '@/constants/Theme';
 import { IspSheet, type IspSheetData } from '@/domain/patients/components/IspSheet';
 import { usePatient, usePatientLoader } from '@/domain/patients/hooks/usePatients';
@@ -36,10 +35,7 @@ export default function PatientLayout() {
         <SafeAreaView edges={['top']}>
           <ScreenHeader title="Patient" />
           <ThemedText themeColor="textSecondary" style={styles.missing}>
-            {error ??
-              (EnvConfig.apiUrl
-                ? 'Loading patient…'
-                : 'This patient isn’t in your caseload any more.')}
+            {error ?? 'Loading patient…'}
           </ThemedText>
           {error ? (
             <View style={styles.retry}>
