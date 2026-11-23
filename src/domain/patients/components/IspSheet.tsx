@@ -51,9 +51,9 @@ function IspContent({ patientId, patientName }: IspSheetData) {
   };
 
   return (
-    <View>
+    <BottomSheetScrollView stickyHeaderIndices={[0]}>
       <SheetHeader title={`ISP · ${patientName}`} onClose={() => dismiss()} />
-      <BottomSheetScrollView contentContainerStyle={styles.body}>
+      <View style={styles.body}>
         {isp ? (
           <>
             <View style={styles.intro}>
@@ -111,7 +111,7 @@ function IspContent({ patientId, patientName }: IspSheetData) {
             No ISP on file for {patientName}.
           </ThemedText>
         )}
-      </BottomSheetScrollView>
+      </View>
       <View
         style={[
           styles.footer,
@@ -125,7 +125,7 @@ function IspContent({ patientId, patientName }: IspSheetData) {
         />
         <Button title="Done" style={styles.flex} onPress={() => dismiss()} />
       </View>
-    </View>
+    </BottomSheetScrollView>
   );
 }
 

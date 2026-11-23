@@ -2,23 +2,31 @@ export type PatientRequestStatus = 'waiting' | 'accepted' | 'declined';
 
 export interface PatientRequest {
   id: string;
-  status: PatientRequestStatus;
+  status: PatientRequestStatus | 'withdrawn';
+  statusLabel: string;
+  patientId: string;
   patientName: string;
-  age: number;
-  /** Every discipline on the case, e.g. `['OT', 'PT']`. */
+  patientMrn: string;
   disciplines: string[];
   city: string;
-  /** The part of the case offered to this provider. */
-  offer: { discipline: string; visitsPerWeek: number; durationMinutes: number };
-  address: string;
-  distanceMiles: number;
-  authorization: string;
-  coordinator: { name: string; organization: string };
-  assignedBy: { name: string; role: string; /** ISO date-time. */ at: string };
-  note?: string;
+  offer: string;
+  sentBy: string;
+  sentAt: string;
+  answeredAt?: string;
   declineReason?: string;
 }
 
+export interface RequestList {
+  ids: string[];
+  page: number;
+  hasMore: boolean;
+  loading: boolean;
+  loaded: boolean;
+  error: string | null;
+}
+
 export interface RequestsState {
-  requests: PatientRequest[];
+  byId: Record<string, PatientRequest>;
+  lists: Record<PatientRequestStatus, RequestList>;
+  counts: Record<PatientRequestStatus | 'withdrawn', number>;
 }

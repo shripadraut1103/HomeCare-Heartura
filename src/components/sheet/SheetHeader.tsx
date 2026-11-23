@@ -15,7 +15,11 @@ export function SheetHeader({ title, titleSuffix, onClose }: SheetHeaderProps) {
   const theme = useTheme();
 
   return (
-    <View style={[styles.header, { borderBottomColor: theme.border }]}>
+    <View
+      style={[
+        styles.header,
+        { borderBottomColor: theme.border, backgroundColor: theme.background },
+      ]}>
       <ThemedText accessibilityRole="header" numberOfLines={1} style={styles.title}>
         {title}
         {titleSuffix ? (

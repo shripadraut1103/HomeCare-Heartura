@@ -18,6 +18,7 @@ export function ProfileSummaryCard({ profile }: { profile: ProviderProfile }) {
       <View style={[styles.avatarRing, { borderColor: theme.toneBlueFg }]}>
         <Avatar
           name={profile.name}
+          uri={profile.photoUrl}
           size={AVATAR_SIZE}
           color="toneBlueFg"
           backgroundColor="toneBlueBg"
@@ -28,7 +29,7 @@ export function ProfileSummaryCard({ profile }: { profile: ProviderProfile }) {
           {profile.name}
         </ThemedText>
         <ThemedText numberOfLines={1} themeColor="textSecondary" style={styles.meta}>
-          {profile.discipline.label} · {profile.region}
+          {[profile.discipline.label, profile.region].filter(Boolean).join(' · ')}
         </ThemedText>
         <Pill
           label={isActive ? 'Active' : 'Inactive'}

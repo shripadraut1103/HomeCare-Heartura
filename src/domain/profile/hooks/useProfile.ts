@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type {
   AvailabilityRange,
@@ -8,10 +8,28 @@ import type {
   SettingsSummary,
 } from '@/domain/profile/interfaces/ProfileInterfaces';
 import { MOCK_SETTINGS_SUMMARY } from '@/domain/profile/mocks/ProfileMocks';
-import { useAppSelector } from '@/store/hooks';
+import { fetchProfileAction } from '@/domain/profile/store/async-actions/ProfileAsyncActions';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
 export function useProfile(): ProviderProfile {
   return useAppSelector((state) => state.profile.profile);
+}
+
+export function useProfileLoader() {
+  const dispatch = useAppDispatch();
+  const loaded = useAppSelector((state) => state.profile.loaded);
+  const loading = useAppSelector((state) => state.profile.loading);
+  const error = useAppSelector((state) => state.profile.error);
+
+  const reload = useCallback(() => {
+    void dispatch(fetchProfileAction());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!loaded) reload();
+  }, [loaded, reload]);
+
+  return { loaded, loading, error, reload };
 }
 
 export function useSettingsSummary(): SettingsSummary {

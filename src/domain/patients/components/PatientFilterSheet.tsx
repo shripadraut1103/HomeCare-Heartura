@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BottomSheetView, useBottomSheetModal, type BottomSheetModal } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
 import type { Ref } from 'react';
@@ -11,7 +12,7 @@ import { Icon } from '@/components/ui/Icon';
 import { Pill } from '@/components/ui/Pill';
 import { Radius, Shadows, Spacing } from '@/constants/Theme';
 import { PATIENT_STATUS, STATUS_ORDER, type StatusFilter } from '@/domain/patients/patientList';
-import { useRequestCount } from '@/domain/requests/hooks/useRequests';
+import { useRequestCount, useRequestCountsLoader } from '@/domain/requests/hooks/useRequests';
 import { useTheme } from '@/hooks/useTheme';
 import { haptics } from '@/utils/haptics';
 
@@ -42,6 +43,8 @@ function FilterContent({
   const insets = useSafeAreaInsets();
   const { dismiss } = useBottomSheetModal();
   const requests = useRequestCount('waiting');
+  const loadCounts = useRequestCountsLoader();
+  useEffect(() => loadCounts(), [loadCounts]);
 
   const choose = (next: StatusFilter) => {
     haptics.selection();

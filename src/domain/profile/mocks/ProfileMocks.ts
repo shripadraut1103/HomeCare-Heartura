@@ -1,8 +1,6 @@
-import { MOCK_USER } from '@/domain/auth/mocks/AuthMocks';
 import type {
   AvailabilityRange,
   BlockedDay,
-  ProviderProfile,
   SettingsSummary,
 } from '@/domain/profile/interfaces/ProfileInterfaces';
 
@@ -10,23 +8,6 @@ import type {
  * TEMPORARY: provider profile and settings until the API exists.
  * Delete this file once the profile slice and `useSettingsSummary` read from the service.
  */
-
-export const MOCK_PROFILE: ProviderProfile = {
-  name: MOCK_USER.name,
-  status: 'active',
-  region: 'Bergen County',
-  discipline: { code: 'PT', label: 'Physical therapist' },
-  credentials: 'DPT',
-  npi: '1427583910',
-  license: { state: 'NJ', number: 'PT 40QA01829', expiresOn: '2028-01-31' },
-  agencyStartDate: '2022-03-14',
-  contact: {
-    phone: '(201) 555-0142',
-    email: 'helena.ruiz@homecaretherapeutics.com',
-    homeAddress: '18 Highwood Ave, Ridgewood, NJ 07450',
-  },
-  agency: { name: MOCK_USER.organization, officePhone: '(201) 555-0100' },
-};
 
 export const MOCK_SETTINGS_SUMMARY: SettingsSummary = {
   notifications: { enabled: 5, total: 5 },

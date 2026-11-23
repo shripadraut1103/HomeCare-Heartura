@@ -64,9 +64,9 @@ function InfoContent({ patientId, kind }: PatientInfoSheetData) {
   const notes = usePatientResource(patientId, 'notes', kind === 'notes');
 
   return (
-    <View>
+    <BottomSheetScrollView stickyHeaderIndices={[0]}>
       <SheetHeader title={TITLES[kind]} onClose={() => dismiss()} />
-      <BottomSheetScrollView contentContainerStyle={styles.body}>
+      <View style={styles.body}>
         {patient && chart ? (
           kind === 'notes' ? (
             <ResourceGate state={notes}>
@@ -76,7 +76,7 @@ function InfoContent({ patientId, kind }: PatientInfoSheetData) {
             <InfoBody kind={kind} patient={patient} chart={chart} />
           )
         ) : null}
-      </BottomSheetScrollView>
+      </View>
       <View
         style={[
           styles.footer,
@@ -84,7 +84,7 @@ function InfoContent({ patientId, kind }: PatientInfoSheetData) {
         ]}>
         <Button title="Done" style={styles.done} onPress={() => dismiss()} />
       </View>
-    </View>
+    </BottomSheetScrollView>
   );
 }
 

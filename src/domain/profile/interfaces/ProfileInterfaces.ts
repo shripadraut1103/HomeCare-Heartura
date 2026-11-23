@@ -17,22 +17,38 @@ export interface ProviderAgency {
   officePhone: string;
 }
 
+export interface ProfileSignature {
+  image: string;
+  savedAt?: string;
+  changesLeft: number;
+  changesMax: number;
+}
+
 export interface ProviderProfile {
+  firstName: string;
+  lastName: string;
   name: string;
   status: ProviderStatus;
   region: string;
   discipline: { code: string; label: string };
   credentials: string;
   npi: string;
+  medicaidNumber?: string;
   license: ProviderLicense;
   supervisor?: string;
   agencyStartDate: string;
   contact: ProfileContact;
   agency: ProviderAgency;
+  photoUrl?: string;
+  signature?: ProfileSignature;
+  version?: number;
 }
 
 export interface ProfileState {
   profile: ProviderProfile;
+  loading: boolean;
+  loaded: boolean;
+  error: string | null;
 }
 
 export interface SettingsSummary {

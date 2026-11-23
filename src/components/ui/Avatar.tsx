@@ -1,3 +1,5 @@
+import { Image } from 'expo-image';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -10,6 +12,7 @@ type AvatarProps = {
   size?: number;
   color?: ThemeColor;
   backgroundColor?: ThemeColor;
+  uri?: string;
 };
 
 export function Avatar({
@@ -17,8 +20,11 @@ export function Avatar({
   size = 44,
   color = 'toneRoseFg',
   backgroundColor = 'toneRoseBg',
+  uri,
 }: AvatarProps) {
   const theme = useTheme();
+  const [failedUri, setFailedUri] = useState<string | null>(null);
+  const showPhoto = Boolean(uri) && uri !== failedUri;
 
   return (
     <View
@@ -33,17 +39,28 @@ export function Avatar({
           backgroundColor: theme[backgroundColor],
         },
       ]}>
-      <ThemedText
-        themeColor={color}
-        style={[styles.initials, { fontSize: Math.round(size * 0.36) }]}>
-        {getInitials(name)}
-      </ThemedText>
+      {showPhoto ? (
+        <Image
+          source={{ uri }}
+          style={{ width: size, height: size, borderRadius: size / 2 }}
+          contentFit="cover"
+          transition={150}
+          onError={() => setFailedUri(uri ?? null)}
+        />
+      ) : (
+        <ThemedText
+          themeColor={color}
+          style={[styles.initials, { fontSize: Math.round(size * 0.36) }]}>
+          {getInitials(name)}
+        </ThemedText>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   circle: {
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },

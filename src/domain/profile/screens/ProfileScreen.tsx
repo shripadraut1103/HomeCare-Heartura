@@ -1,23 +1,29 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { router } from 'expo-router';
-import { useRef } from 'react';
+import { Image } from 'expo-image';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTabBarSpace } from '@/components/AppTabs';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Button } from '@/components/ui/Button';
 import { DetailRow, detailValueTextStyle } from '@/components/ui/DetailRow';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { Spacing } from '@/constants/Theme';
+import { Radius, Spacing } from '@/constants/Theme';
 import { logoutAction } from '@/domain/auth/store/async-actions/AuthAsyncActions';
 import { ChangePasswordSheet } from '@/domain/profile/components/ChangePasswordSheet';
 import { MenuRow } from '@/domain/profile/components/MenuRow';
 import { ProfileCard } from '@/domain/profile/components/ProfileCard';
 import { ProfileHeader } from '@/domain/profile/components/ProfileHeader';
+import {
+  ProfileSignatureSheet,
+  type ProfileSignatureSheetData,
+} from '@/domain/profile/components/ProfileSignatureSheet';
 import { ProfileSummaryCard } from '@/domain/profile/components/ProfileSummaryCard';
-import { useProfile } from '@/domain/profile/hooks/useProfile';
-import { useRequestCount } from '@/domain/requests/hooks/useRequests';
+import { useProfile, useProfileLoader } from '@/domain/profile/hooks/useProfile';
+import { useRequestCount, useRequestCountsLoader } from '@/domain/requests/hooks/useRequests';
 import { useAppDispatch } from '@/store/hooks';
 import { formatNumericDate, parseIsoDate } from '@/utils/dateFormat';
 import { confirm } from '@/utils/confirm';
@@ -31,7 +37,18 @@ export default function ProfileScreen() {
   const dispatch = useAppDispatch();
   const tabBarSpace = useTabBarSpace();
   const profile = useProfile();
-  const { contact, license, agency } = profile;
+  const loader = useProfileLoader();
+  const { reload } = loader;
+  const { contact, license, agency, signature } = profile;
+  const signatureSheet = useRef<BottomSheetModal<ProfileSignatureSheetData>>(null);
+
+  const loadCounts = useRequestCountsLoader();
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+      loadCounts();
+    }, [reload, loadCounts])
+  );
   const waitingRequests = useRequestCount('waiting');
   const changePasswordSheet = useRef<BottomSheetModal>(null);
 
@@ -57,6 +74,12 @@ export default function ProfileScreen() {
         <ScrollView
           contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
           showsVerticalScrollIndicator={false}>
+          {loader.error && !loader.loaded ? (
+            <View style={styles.retry}>
+              <ThemedText themeColor="error">{loader.error}</ThemedText>
+              <Button title="Try again" variant="secondary" size="small" onPress={loader.reload} />
+            </View>
+          ) : null}
           <ProfileSummaryCard profile={profile} />
 
           <View style={styles.section}>
@@ -65,22 +88,31 @@ export default function ProfileScreen() {
               <DetailRow label="Discipline">
                 {`${profile.discipline.code} · ${profile.discipline.label}`}
               </DetailRow>
-              <DetailRow label="Credentials">{profile.credentials}</DetailRow>
-              <DetailRow label="NPI">{profile.npi}</DetailRow>
+              {profile.credentials ? (
+                <DetailRow label="Credentials">{profile.credentials}</DetailRow>
+              ) : null}
+              <DetailRow label="NPI">{profile.npi || '—'}</DetailRow>
+              {profile.medicaidNumber ? (
+                <DetailRow label="Medicaid #">{profile.medicaidNumber}</DetailRow>
+              ) : null}
               <DetailRow label="License">
                 <ThemedText style={detailValueTextStyle}>
-                  {license.state} {license.number}
+                  {[license.state, license.number].filter(Boolean).join(' ') || '—'}
                 </ThemedText>
-                <ThemedText themeColor="textSecondary" style={detailValueTextStyle}>
-                  Expires {formatIsoDate(license.expiresOn)}
-                </ThemedText>
+                {license.expiresOn ? (
+                  <ThemedText themeColor="textSecondary" style={detailValueTextStyle}>
+                    Expires {formatIsoDate(license.expiresOn)}
+                  </ThemedText>
+                ) : null}
               </DetailRow>
-              <DetailRow label="Supervisor">
+              <DetailRow label="Supervisor" isLast={!profile.agencyStartDate}>
                 {profile.supervisor ?? 'None · independent therapist'}
               </DetailRow>
-              <DetailRow label="With agency" isLast>
-                {`Since ${formatIsoDate(profile.agencyStartDate)}`}
-              </DetailRow>
+              {profile.agencyStartDate ? (
+                <DetailRow label="With agency" isLast>
+                  {`Since ${formatIsoDate(profile.agencyStartDate)}`}
+                </DetailRow>
+              ) : null}
             </ProfileCard>
           </View>
 
@@ -102,13 +134,47 @@ export default function ProfileScreen() {
                 />
               </DetailRow>
               <DetailRow label="Home address" isLast>
-                <ThemedText style={detailValueTextStyle}>{contact.homeAddress}</ThemedText>
+                <ThemedText style={detailValueTextStyle}>{contact.homeAddress || '—'}</ThemedText>
                 <ThemedText themeColor="textSecondary" style={detailValueTextStyle}>
                   Used for offering you patients nearby
                 </ThemedText>
               </DetailRow>
             </ProfileCard>
           </View>
+
+          {signature ? (
+            <View style={styles.section}>
+              <SectionHeader
+                title="Signature"
+                actionLabel={
+                  signature.changesLeft > 0 ? (signature.image ? 'Update' : 'Add') : undefined
+                }
+                onActionPress={() =>
+                  signatureSheet.current?.present({
+                    changesLeft: signature.changesLeft,
+                    changesMax: signature.changesMax,
+                  })
+                }
+              />
+              <ProfileCard padded>
+                {signature.image ? (
+                  <Image
+                    source={{ uri: signature.image }}
+                    style={styles.signature}
+                    contentFit="contain"
+                    accessibilityLabel="Your saved signature"
+                  />
+                ) : (
+                  <ThemedText themeColor="textSecondary">No signature on file</ThemedText>
+                )}
+                <ThemedText themeColor="textSecondary" style={styles.signatureNote}>
+                  {signature.changesLeft > 0
+                    ? `${signature.changesLeft} of ${signature.changesMax} changes left`
+                    : 'No changes left · ask the office to reset your signature'}
+                </ThemedText>
+              </ProfileCard>
+            </View>
+          ) : null}
 
           <View style={styles.section}>
             <SectionHeader title="My work" />
@@ -137,10 +203,10 @@ export default function ProfileScreen() {
                 icon={{ ios: 'square.grid.2x2', android: 'grid_view' }}
                 tone="blue"
                 title={agency.name}
-                subtitle={`Office ${agency.officePhone}`}
+                subtitle={agency.officePhone ? `Office ${agency.officePhone}` : undefined}
                 chevron={false}
                 divider
-                onPress={() => callPhone(agency.officePhone)}
+                onPress={agency.officePhone ? () => callPhone(agency.officePhone) : undefined}
               />
               <MenuRow
                 icon={{ ios: 'lock', android: 'lock' }}
@@ -172,6 +238,7 @@ export default function ProfileScreen() {
         </ScrollView>
       </SafeAreaView>
       <ChangePasswordSheet ref={changePasswordSheet} />
+      <ProfileSignatureSheet ref={signatureSheet} />
     </ThemedView>
   );
 }
@@ -216,5 +283,19 @@ const styles = StyleSheet.create({
   },
   link: {
     textDecorationLine: 'underline',
+  },
+  retry: {
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  signature: {
+    height: 96,
+    borderRadius: Radius.medium,
+    backgroundColor: '#ffffff',
+  },
+  signatureNote: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: Spacing.two,
   },
 });

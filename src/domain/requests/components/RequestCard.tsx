@@ -14,12 +14,13 @@ import { useTheme } from '@/hooks/useTheme';
 import { formatNumericDate, formatTime } from '@/utils/dateFormat';
 
 const STATUS: Record<
-  PatientRequestStatus,
+  PatientRequestStatus | 'withdrawn',
   { label: string; color: ThemeColor; background: ThemeColor }
 > = {
   waiting: { label: 'Waiting for you', color: 'textSecondary', background: 'backgroundElement' },
   accepted: { label: 'Accepted', color: 'success', background: 'successMuted' },
   declined: { label: 'Declined', color: 'toneRedFg', background: 'toneRedBg' },
+  withdrawn: { label: 'Withdrawn', color: 'textSecondary', background: 'backgroundElement' },
 };
 
 const formatAssignedAt = (value: string) => {
@@ -29,26 +30,30 @@ const formatAssignedAt = (value: string) => {
 
 type RequestCardProps = {
   request: PatientRequest;
+  accepting?: boolean;
+  disabled?: boolean;
   onAccept?: (request: PatientRequest) => void;
   onDecline?: (request: PatientRequest) => void;
 };
 
-export function RequestCard({ request, onAccept, onDecline }: RequestCardProps) {
+export function RequestCard({
+  request,
+  accepting = false,
+  disabled = false,
+  onAccept,
+  onDecline,
+}: RequestCardProps) {
   const theme = useTheme();
   const status = STATUS[request.status];
-  const { offer, coordinator, assignedBy } = request;
+  const sent = [request.sentBy, formatAssignedAt(request.sentAt)].filter(Boolean).join(' · ');
 
   const rows: readonly [label: string, value: string][] = [
-    [
-      'For you',
-      `${offer.discipline} · ${offer.visitsPerWeek}× a week · ${offer.durationMinutes} min`,
-    ],
-    ['Address', `${request.address} · ${request.distanceMiles} mi`],
-    ['Authorization', request.authorization],
-    ['Coordinator', `${coordinator.name} · ${coordinator.organization}`],
-    ['Assigned by', `${assignedBy.name} · ${assignedBy.role} · ${formatAssignedAt(assignedBy.at)}`],
+    ['For you', request.offer],
+    ['Sent by', sent],
+    ...(request.answeredAt
+      ? [['Answered', formatAssignedAt(request.answeredAt)] as [string, string]]
+      : []),
     ...(request.declineReason ? [['Reason', request.declineReason] as [string, string]] : []),
-    ...(request.note ? [['Note', request.note] as [string, string]] : []),
   ];
 
   return (
@@ -64,11 +69,11 @@ export function RequestCard({ request, onAccept, onDecline }: RequestCardProps) 
             {request.patientName}
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.meta}>
-            {[`${request.age} yrs`, ...request.disciplines, request.city].join(' · ')}
+            {[request.patientMrn, ...request.disciplines, request.city].filter(Boolean).join(' · ')}
           </ThemedText>
         </View>
         <Pill
-          label={status.label}
+          label={request.status === 'waiting' ? status.label : request.statusLabel || status.label}
           color={status.color}
           backgroundColor={status.background}
           dot
@@ -91,12 +96,15 @@ export function RequestCard({ request, onAccept, onDecline }: RequestCardProps) 
             variant="secondary"
             style={styles.flex}
             accessibilityHint={`Declines ${request.patientName}`}
+            disabled={disabled}
             onPress={() => onDecline?.(request)}
           />
           <Button
             title="Accept"
             style={styles.flex}
             accessibilityHint={`Accepts ${request.patientName}`}
+            disabled={disabled}
+            loading={accepting}
             onPress={() => onAccept?.(request)}
           />
         </View>

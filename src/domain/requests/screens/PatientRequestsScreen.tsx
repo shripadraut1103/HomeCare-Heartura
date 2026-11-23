@@ -1,11 +1,13 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { useRef, useState } from 'react';
-import { StyleSheet, View, type ListRenderItem } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View, type ListRenderItem } from 'react-native';
 import Animated, { FadeIn, FadeOutLeft, LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTabBarSpace } from '@/components/AppTabs';
 import { ThemedView } from '@/components/ThemedView';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl';
@@ -16,12 +18,20 @@ import {
   type DeclineRequestSheetData,
 } from '@/domain/requests/components/DeclineRequestSheet';
 import { RequestCard } from '@/domain/requests/components/RequestCard';
-import { usePatientRequests } from '@/domain/requests/hooks/useRequests';
+import {
+  usePatientRequests,
+  useRequestCount,
+  useRequestCountsLoader,
+} from '@/domain/requests/hooks/useRequests';
+import type { ApiDeclineReason } from '@/domain/requests/interfaces/RequestApi';
 import type {
   PatientRequest,
   PatientRequestStatus,
 } from '@/domain/requests/interfaces/RequestInterfaces';
-import { answerRequest, reopenRequest } from '@/domain/requests/store/RequestsReducer';
+import {
+  acceptRequestAction,
+  declineRequestAction,
+} from '@/domain/requests/store/async-actions/RequestAsyncActions';
 import { useTheme } from '@/hooks/useTheme';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
@@ -42,24 +52,45 @@ export default function PatientRequestsScreen() {
   const dispatch = useAppDispatch();
   const tabBarSpace = useTabBarSpace();
   const [tab, setTab] = useState<PatientRequestStatus>('waiting');
-  const requests = usePatientRequests();
+  const { requests, loading, error, refresh, loadMore } = usePatientRequests(tab);
+  const waiting = useRequestCount('waiting');
+  const loadCounts = useRequestCountsLoader();
+  const [accepting, setAccepting] = useState<string | null>(null);
   const declineSheet = useRef<BottomSheetModal<DeclineRequestSheetData>>(null);
 
-  const waiting = requests.filter((request) => request.status === 'waiting').length;
-  const visible = requests.filter((request) => request.status === tab);
+  useFocusEffect(useCallback(() => loadCounts(), [loadCounts]));
 
-  const answer = (requestId: string, status: 'accepted' | 'declined', reason?: string) => {
-    const request = requests.find((item) => item.id === requestId);
-    if (!request) return;
-    if (status === 'accepted') haptics.success();
-    else haptics.tap();
-    dispatch(answerRequest({ requestId, status, reason }));
-    dispatch(
-      setToastMessage({
-        message: `${status === 'accepted' ? 'Accepted' : 'Declined'} ${request.patientName}`,
-        action: { label: 'Undo', onPress: reopenRequest({ requestId }) },
-      })
-    );
+  const fail = (message: string | undefined, fallback: string) => {
+    haptics.error();
+    dispatch(setToastMessage({ message: message || fallback, type: 'error' }));
+  };
+
+  const accept = async (request: PatientRequest) => {
+    setAccepting(request.id);
+    const result = await dispatch(acceptRequestAction({ requestId: request.id }));
+    setAccepting(null);
+    const payload = acceptRequestAction.fulfilled.match(result) ? result.payload : null;
+    if (!payload || 'error' in payload) {
+      fail(payload?.error, 'Couldn’t accept this request. Try again.');
+      refresh();
+      return;
+    }
+    haptics.success();
+    dispatch(setToastMessage({ message: `Accepted ${request.patientName}` }));
+    loadCounts();
+  };
+
+  const decline = async (requestId: string, reason: ApiDeclineReason, note: string) => {
+    const result = await dispatch(declineRequestAction({ requestId, reason, note }));
+    const payload = declineRequestAction.fulfilled.match(result) ? result.payload : null;
+    if (!payload || 'error' in payload) {
+      fail(payload?.error, 'Couldn’t decline this request. Try again.');
+      return false;
+    }
+    haptics.tap();
+    dispatch(setToastMessage({ message: `Declined ${payload.data.patient_name}` }));
+    loadCounts();
+    return true;
   };
 
   // Answered cards slide out and the rest move up; an undone one fades back in.
@@ -67,7 +98,9 @@ export default function PatientRequestsScreen() {
     <Animated.View entering={FadeIn.duration(220)} exiting={FadeOutLeft.duration(220)}>
       <RequestCard
         request={item}
-        onAccept={(request) => answer(request.id, 'accepted')}
+        accepting={accepting === item.id}
+        disabled={accepting !== null}
+        onAccept={(request) => void accept(request)}
         onDecline={(request) =>
           declineSheet.current?.present({ requestId: request.id, patientName: request.patientName })
         }
@@ -88,21 +121,38 @@ export default function PatientRequestsScreen() {
         </View>
         <TabPanel tab={tab}>
           <Animated.FlatList
-            data={visible}
+            data={requests}
             keyExtractor={keyExtractor}
             renderItem={renderRequest}
             itemLayoutAnimation={LinearTransition.duration(220)}
             ItemSeparatorComponent={Separator}
-            ListEmptyComponent={EmptyState}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            refreshing={false}
+            onRefresh={refresh}
+            ListFooterComponent={
+              loading && requests.length > 0 ? (
+                <ActivityIndicator style={styles.footer} />
+              ) : undefined
+            }
+            ListEmptyComponent={
+              error ? (
+                <View style={styles.errorState}>
+                  <EmptyState message={error} />
+                  <Button title="Try again" variant="secondary" size="small" onPress={refresh} />
+                </View>
+              ) : loading ? (
+                <EmptyState message="Loading requests…" />
+              ) : (
+                <EmptyState />
+              )
+            }
             contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
             showsVerticalScrollIndicator={false}
           />
         </TabPanel>
       </SafeAreaView>
-      <DeclineRequestSheet
-        ref={declineSheet}
-        onDecline={(requestId, reason) => answer(requestId, 'declined', reason)}
-      />
+      <DeclineRequestSheet ref={declineSheet} onDecline={decline} />
     </ThemedView>
   );
 }
@@ -129,5 +179,12 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: Spacing.three,
+  },
+  footer: {
+    paddingVertical: Spacing.three,
+  },
+  errorState: {
+    alignItems: 'center',
+    gap: Spacing.two,
   },
 });
