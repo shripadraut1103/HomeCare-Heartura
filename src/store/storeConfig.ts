@@ -4,6 +4,7 @@ import { FLUSH, PAUSE, PERSIST, persistStore, PURGE, REGISTER, REHYDRATE } from 
 import { configureApiSession } from '@/config/AxiosConfig';
 import { sessionExpired, tokensRefreshed } from '@/domain/auth/store/AuthReducer';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
+import { listenerMiddleware } from '@/store/listenerMiddleware';
 import { persistedReducer } from '@/store/persistConfig';
 
 export const createStore = () =>
@@ -14,7 +15,7 @@ export const createStore = () =>
       getDefaultMiddleware({
         // redux-persist dispatches non-serializable actions; ignore only those.
         serializableCheck: { ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER] },
-      }),
+      }).prepend(listenerMiddleware.middleware),
   });
 
 const store = createStore();

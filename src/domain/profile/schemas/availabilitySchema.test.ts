@@ -15,7 +15,7 @@ const values = (
   overrides: Partial<AvailabilityFormValues> = {}
 ): AvailabilityFormValues => ({
   startDate: new Date(2026, 8, 1),
-  endDate: null,
+  endDate: new Date(2026, 11, 31),
   days: WEEKDAYS.map(({ id }) => ({
     weekday: id,
     enabled: id === 'mon',
@@ -50,7 +50,7 @@ describe('availabilitySchema', () => {
     expect(errorPaths(input)).toEqual([]);
   });
 
-  it('allows no end date but not one before the start', () => {
+  it('allows a one-day range but not an end before the start', () => {
     const monday = [slot('08:00', '17:00')];
     expect(errorPaths(values(monday, { endDate: new Date(2026, 7, 31) }))).toEqual(['endDate']);
     expect(errorPaths(values(monday, { endDate: new Date(2026, 8, 1) }))).toEqual([]);

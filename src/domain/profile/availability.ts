@@ -26,12 +26,8 @@ export const DEFAULT_SLOT: TimeSlot = { start: '09:00', end: '17:00' };
 export const formatSlot = (slot: TimeSlot) =>
   `${formatTime(parseTimeOfDay(slot.start))} – ${formatTime(parseTimeOfDay(slot.end))}`;
 
-export const formatRangeDates = (range: AvailabilityRange) => {
-  const start = formatNumericDate(parseIsoDate(range.startDate));
-  return range.endDate
-    ? `${start} – ${formatNumericDate(parseIsoDate(range.endDate))}`
-    : `From ${start}`;
-};
+export const formatRangeDates = (range: AvailabilityRange) =>
+  `${formatNumericDate(parseIsoDate(range.startDate))} – ${formatNumericDate(parseIsoDate(range.endDate))}`;
 
 export const countAvailableDays = (range: AvailabilityRange) =>
   WEEKDAYS.filter((day) => range.days[day.id].length > 0).length;
@@ -39,7 +35,7 @@ export const countAvailableDays = (range: AvailabilityRange) =>
 export function getCurrentRange(ranges: readonly AvailabilityRange[], today = new Date()) {
   const date = toIsoDate(today);
   return (
-    ranges.find((range) => range.startDate <= date && (!range.endDate || range.endDate >= date)) ??
+    ranges.find((range) => range.startDate <= date && range.endDate >= date) ??
     ranges.find((range) => range.startDate > date) ??
     ranges.at(-1)
   );

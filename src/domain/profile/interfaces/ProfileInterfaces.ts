@@ -58,24 +58,27 @@ export interface SettingsSummary {
 export type Weekday = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
 export interface TimeSlot {
-  /** `HH:mm` */
   start: string;
-  /** `HH:mm` */
   end: string;
 }
 
 export interface AvailabilityRange {
   id: string;
-  /** `YYYY-MM-DD` */
   startDate: string;
-  /** `YYYY-MM-DD`; missing when the range has no end. */
-  endDate?: string;
-  /** An empty list means not available that day. */
+  endDate: string;
   days: Record<Weekday, TimeSlot[]>;
 }
 
 export interface AvailabilityState {
+  providerId: string | null;
+  version: number | null;
   ranges: AvailabilityRange[];
+  updatedAt: string | null;
+  updatedBy: string | null;
+  loading: boolean;
+  loaded: boolean;
+  saving: boolean;
+  error: string | null;
 }
 
 export type AppearancePreference = 'system' | 'light' | 'dark';
@@ -89,15 +92,16 @@ export interface PreferencesState {
 export interface BlockedDay {
   id: string;
   title: string;
-  /** `YYYY-MM-DD` */
   startDate: string;
-  /** `YYYY-MM-DD` */
   endDate: string;
-  /** `HH:mm`; missing for an all-day block. */
-  hours?: { start: string; end: string };
+  hours?: TimeSlot;
   notifyOffice: boolean;
+  version: number;
 }
 
 export interface BlockDaysState {
   blockedDays: BlockedDay[];
+  loading: boolean;
+  loaded: boolean;
+  error: string | null;
 }

@@ -1,17 +1,23 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { getCurrentRange, WEEKDAYS } from '@/domain/profile/availability';
+import { rangeId } from '@/domain/profile/availabilityMapper';
 import { useAvailabilityRanges } from '@/domain/profile/hooks/useProfile';
 import type { AvailabilityRange, TimeSlot } from '@/domain/profile/interfaces/ProfileInterfaces';
 import {
   availabilitySchema,
   type AvailabilityFormValues,
 } from '@/domain/profile/schemas/availabilitySchema';
-import { removeAvailability, saveAvailability } from '@/domain/profile/store/AvailabilityReducer';
+import {
+  fetchWeeklyHoursAction,
+  saveWeeklyHoursAction,
+} from '@/domain/profile/store/async-actions/AvailabilityAsyncActions';
 import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
+import { confirm } from '@/utils/confirm';
 import { parseIsoDate, parseTimeOfDay, toIsoDate, toTimeOfDay } from '@/utils/dateFormat';
 import { haptics } from '@/utils/haptics';
 
@@ -42,22 +48,29 @@ const today = () => {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 };
 
-export function useAvailabilityForm(rangeId: string | undefined) {
+const aYearLater = (date: Date) =>
+  new Date(date.getFullYear() + 1, date.getMonth(), date.getDate() - 1);
+
+const overlaps = (a: AvailabilityRange, b: AvailabilityRange) =>
+  a.startDate <= b.endDate && b.startDate <= a.endDate;
+
+export function useAvailabilityForm(id: string | undefined) {
   const dispatch = useAppDispatch();
   const ranges = useAvailabilityRanges();
-  const existing = rangeId ? ranges.find((range) => range.id === rangeId) : undefined;
+  const existing = id ? ranges.find((range) => range.id === id) : undefined;
+  const [saving, setSaving] = useState(false);
 
   const form = useForm<AvailabilityFormValues>({
     resolver: zodResolver(availabilitySchema),
     defaultValues: existing
       ? {
           startDate: parseIsoDate(existing.startDate),
-          endDate: existing.endDate ? parseIsoDate(existing.endDate) : null,
+          endDate: parseIsoDate(existing.endDate),
           days: toFormDays(existing.days),
         }
       : {
           startDate: today(),
-          endDate: null,
+          endDate: aYearLater(today()),
           days: toFormDays(getCurrentRange(ranges)?.days ?? WEEKDAYS_ON),
         },
   });
@@ -66,10 +79,34 @@ export function useAvailabilityForm(rangeId: string | undefined) {
     'Your changes to this availability won’t be saved.'
   );
 
+  const save = async (next: AvailabilityRange[], success: string) => {
+    setSaving(true);
+    const result = await dispatch(saveWeeklyHoursAction(next));
+    setSaving(false);
+    const payload = saveWeeklyHoursAction.fulfilled.match(result) ? result.payload : null;
+    if (!payload || 'error' in payload) {
+      haptics.error();
+      const conflict = payload?.code === 'EDIT_CONFLICT';
+      if (conflict) void dispatch(fetchWeeklyHoursAction());
+      dispatch(
+        setToastMessage({
+          message: conflict
+            ? 'Your availability was changed somewhere else. We reloaded it; please try again.'
+            : payload?.error || 'Couldn’t save your availability. Try again.',
+          type: 'error',
+        })
+      );
+      return false;
+    }
+    haptics.success();
+    dispatch(setToastMessage({ message: success }));
+    return true;
+  };
+
   const submit = () => {
     form.clearErrors('root.noDays');
     void form.handleSubmit(
-      (values) => {
+      async (values) => {
         if (!values.days.some((day) => day.enabled)) {
           haptics.error();
           form.setError('root.noDays', { message: 'Turn on at least one day.' });
@@ -85,33 +122,40 @@ export function useAvailabilityForm(rangeId: string | undefined) {
               : [],
           ])
         ) as AvailabilityRange['days'];
-        dispatch(
-          saveAvailability({
-            id: existing?.id ?? `availability-${Date.now()}`,
-            startDate: toIsoDate(values.startDate),
-            endDate: values.endDate ? toIsoDate(values.endDate) : undefined,
-            days,
-          })
-        );
-        dispatch(setToastMessage({ message: 'Availability saved' }));
-        haptics.success();
-        leave();
+        const startDate = toIsoDate(values.startDate);
+        const endDate = toIsoDate(values.endDate);
+        const range: AvailabilityRange = {
+          id: rangeId(startDate, endDate),
+          startDate,
+          endDate,
+          days,
+        };
+        const others = ranges.filter((other) => other.id !== existing?.id);
+        if (others.some((other) => overlaps(other, range))) {
+          haptics.error();
+          form.setError('startDate', {
+            message: 'These dates overlap another availability range.',
+          });
+          return;
+        }
+        const next = [...others, range].sort((a, b) => a.startDate.localeCompare(b.startDate));
+        if (await save(next, 'Availability saved')) leave();
       },
       () => haptics.error()
     )();
   };
 
-  const remove = () => {
+  const remove = async () => {
     if (!existing) return;
-    haptics.tap();
-    dispatch(removeAvailability({ id: existing.id }));
-    dispatch(
-      setToastMessage({
-        message: 'Availability deleted',
-        action: { label: 'Undo', onPress: saveAvailability(existing) },
-      })
-    );
-    leave();
+    const confirmed = await confirm({
+      title: 'Delete this availability?',
+      message: 'Your preferred hours for these dates will be removed.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!confirmed) return;
+    const next = ranges.filter((range) => range.id !== existing.id);
+    if (await save(next, 'Availability deleted')) leave();
   };
 
   return {
@@ -119,10 +163,11 @@ export function useAvailabilityForm(rangeId: string | undefined) {
     setValue: form.setValue,
     getValues: form.getValues,
     isEditing: existing !== undefined,
-    notFound: rangeId !== undefined && existing === undefined,
+    notFound: id !== undefined && existing === undefined,
     noDaysError: form.formState.errors.root?.noDays?.message,
+    saving,
     submit,
-    remove,
+    remove: () => void remove(),
   };
 }
 

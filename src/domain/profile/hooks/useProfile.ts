@@ -8,6 +8,10 @@ import type {
   SettingsSummary,
 } from '@/domain/profile/interfaces/ProfileInterfaces';
 import { MOCK_SETTINGS_SUMMARY } from '@/domain/profile/mocks/ProfileMocks';
+import {
+  fetchBlockDaysAction,
+  fetchWeeklyHoursAction,
+} from '@/domain/profile/store/async-actions/AvailabilityAsyncActions';
 import { fetchProfileAction } from '@/domain/profile/store/async-actions/ProfileAsyncActions';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 
@@ -47,4 +51,26 @@ export function usePreferences(): PreferencesState {
 
 export function useAvailabilityRanges(): AvailabilityRange[] {
   return useAppSelector((state) => state.availability.ranges);
+}
+
+export function useAvailabilityLoader() {
+  const dispatch = useAppDispatch();
+  const loaded = useAppSelector((state) => state.availability.loaded);
+  const loading = useAppSelector((state) => state.availability.loading);
+  const error = useAppSelector((state) => state.availability.error);
+  const reload = useCallback(() => {
+    void dispatch(fetchWeeklyHoursAction());
+  }, [dispatch]);
+  return { loaded, loading, error, reload };
+}
+
+export function useBlockDaysLoader() {
+  const dispatch = useAppDispatch();
+  const loaded = useAppSelector((state) => state.blockDays.loaded);
+  const loading = useAppSelector((state) => state.blockDays.loading);
+  const error = useAppSelector((state) => state.blockDays.error);
+  const reload = useCallback(() => {
+    void dispatch(fetchBlockDaysAction());
+  }, [dispatch]);
+  return { loaded, loading, error, reload };
 }

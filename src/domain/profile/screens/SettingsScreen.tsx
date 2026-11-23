@@ -1,4 +1,5 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 import { countAvailableDays, getCurrentRange } from '@/domain/profile/availability';
 import { AppVersionNote } from '@/domain/profile/components/AppVersionNote';
@@ -6,7 +7,9 @@ import { MenuRow } from '@/domain/profile/components/MenuRow';
 import { ProfileCard } from '@/domain/profile/components/ProfileCard';
 import { SettingsScreenLayout } from '@/domain/profile/components/SettingsScreenLayout';
 import {
+  useAvailabilityLoader,
   useAvailabilityRanges,
+  useBlockDaysLoader,
   useBlockedDays,
   usePreferences,
   useSettingsSummary,
@@ -27,6 +30,16 @@ export default function SettingsScreen() {
   const preferences = usePreferences();
   const ranges = useAvailabilityRanges();
   const currentRange = getCurrentRange(ranges);
+  const availability = useAvailabilityLoader();
+  const blocks = useBlockDaysLoader();
+  const { reload: reloadAvailability } = availability;
+  const { reload: reloadBlocks } = blocks;
+  useFocusEffect(
+    useCallback(() => {
+      reloadAvailability();
+      reloadBlocks();
+    }, [reloadAvailability, reloadBlocks])
+  );
 
   return (
     <SettingsScreenLayout title="Settings">
@@ -36,9 +49,13 @@ export default function SettingsScreen() {
           tone="blue"
           title="Availability"
           subtitle={
-            currentRange
-              ? `${plural(ranges.length, 'date range')} · ${plural(countAvailableDays(currentRange), 'day')} a week`
-              : 'Not set'
+            !availability.loaded
+              ? availability.error
+                ? 'Couldn’t load'
+                : 'Loading…'
+              : currentRange
+                ? `${plural(ranges.length, 'date range')} · ${plural(countAvailableDays(currentRange), 'day')} a week`
+                : 'Not set'
           }
           onPress={() => router.push('/profile/availability')}
         />
@@ -46,7 +63,13 @@ export default function SettingsScreen() {
           icon={{ ios: 'xmark.circle', android: 'cancel' }}
           tone="amber"
           title="Block days"
-          subtitle={plural(blockedDays.length, 'blocked day')}
+          subtitle={
+            !blocks.loaded
+              ? blocks.error
+                ? 'Couldn’t load'
+                : 'Loading…'
+              : `${plural(blockedDays.length, 'upcoming block')}`
+          }
           onPress={() => router.push('/profile/block-days')}
         />
         <MenuRow

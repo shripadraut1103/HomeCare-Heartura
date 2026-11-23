@@ -1,29 +1,63 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 
-import type { BlockDaysState, BlockedDay } from '@/domain/profile/interfaces/ProfileInterfaces';
-import { MOCK_BLOCKED_DAYS } from '@/domain/profile/mocks/ProfileMocks';
+import { byBlockStart, toBlockedDay } from '@/domain/profile/availabilityMapper';
+import type { BlockDaysState } from '@/domain/profile/interfaces/ProfileInterfaces';
+import {
+  createBlockDayAction,
+  deleteBlockDayAction,
+  fetchBlockDaysAction,
+  updateBlockDayAction,
+} from '@/domain/profile/store/async-actions/AvailabilityAsyncActions';
 import { BLOCK_DAYS_REDUCER } from '@/store/constants/StoreConstants';
 
 const initialState: BlockDaysState = {
-  blockedDays: MOCK_BLOCKED_DAYS,
+  blockedDays: [],
+  loading: false,
+  loaded: false,
+  error: null,
 };
-
-const byStart = (a: BlockedDay, b: BlockedDay) =>
-  `${a.startDate}${a.hours?.start ?? ''}`.localeCompare(`${b.startDate}${b.hours?.start ?? ''}`);
 
 const BlockDaysReducer = createSlice({
   name: BLOCK_DAYS_REDUCER,
   initialState,
-  reducers: {
-    // TEMPORARY: saved locally; replace with add / remove thunks once the availability API exists.
-    addBlockedDay: (state, action: PayloadAction<BlockedDay>) => {
-      state.blockedDays = [...state.blockedDays, action.payload].sort(byStart);
-    },
-    removeBlockedDay: (state, action: PayloadAction<{ id: string }>) => {
-      state.blockedDays = state.blockedDays.filter((day) => day.id !== action.payload.id);
-    },
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchBlockDaysAction.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchBlockDaysAction.fulfilled, (state, action) => {
+        state.loading = false;
+        if ('error' in action.payload) {
+          state.error = action.payload.error;
+          return;
+        }
+        state.loaded = true;
+        state.blockedDays = action.payload.data.results.map(toBlockedDay).sort(byBlockStart);
+      })
+      .addCase(fetchBlockDaysAction.rejected, (state) => {
+        state.loading = false;
+        state.error = 'Couldn’t load your block days.';
+      })
+      .addCase(createBlockDayAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        state.blockedDays = [...state.blockedDays, toBlockedDay(action.payload.data)].sort(
+          byBlockStart
+        );
+      })
+      .addCase(updateBlockDayAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        const updated = toBlockedDay(action.payload.data);
+        state.blockedDays = state.blockedDays
+          .map((block) => (block.id === updated.id ? updated : block))
+          .sort(byBlockStart);
+      })
+      .addCase(deleteBlockDayAction.fulfilled, (state, action) => {
+        if ('error' in action.payload) return;
+        state.blockedDays = state.blockedDays.filter((block) => block.id !== action.meta.arg.id);
+      });
   },
 });
 
 export default BlockDaysReducer.reducer;
-export const { addBlockedDay, removeBlockedDay } = BlockDaysReducer.actions;

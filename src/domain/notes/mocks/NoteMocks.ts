@@ -1,4 +1,3 @@
-import { MOCK_USER } from '@/domain/auth/mocks/AuthMocks';
 import type {
   DailyNoteDefaults,
   NoteComponent,
@@ -10,6 +9,8 @@ import type {
   ProgressNoteDue,
 } from '@/domain/notes/interfaces/NoteInterfaces';
 import { VISITS_PER_PROGRESS_NOTE } from '@/domain/notes/noteRules';
+
+const MOCK_THERAPIST = 'Helena Ruiz, DPT';
 
 /**
  * TEMPORARY: notes until the API exists.
@@ -253,7 +254,7 @@ export const MOCK_PROGRESS_NOTES_DUE: ProgressNoteDue[] = [
     },
     servicePeriod: { start: '02/01/2026', end: '09/03/2026' },
     diagnosis: 'F84.0 · Autistic disorder',
-    therapist: MOCK_USER.name,
+    therapist: MOCK_THERAPIST,
   },
   {
     id: 'pg2',
@@ -285,7 +286,7 @@ export const MOCK_PROGRESS_NOTES_DUE: ProgressNoteDue[] = [
     },
     servicePeriod: { start: '03/09/2026', end: '09/03/2026' },
     diagnosis: 'F82 · Developmental coordination disorder',
-    therapist: MOCK_USER.name,
+    therapist: MOCK_THERAPIST,
   },
   {
     id: 'pg3',
@@ -318,7 +319,7 @@ export const MOCK_PROGRESS_NOTES_DUE: ProgressNoteDue[] = [
     },
     servicePeriod: { start: '01/12/2026', end: '09/03/2026' },
     diagnosis: 'M62.81 · Muscle weakness (generalized)',
-    therapist: MOCK_USER.name,
+    therapist: MOCK_THERAPIST,
   },
 ];
 
@@ -1296,7 +1297,7 @@ export const MOCK_DAILY_NOTE_TEMPLATES: NoteTemplate[] = [
 ];
 
 export const MOCK_DAILY_NOTE_DEFAULTS: DailyNoteDefaults = {
-  provider: MOCK_USER.name,
+  provider: MOCK_THERAPIST,
   durationMinutes: 60,
   serviceLocations: [
     'Private home · 12 · EVV required',

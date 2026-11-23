@@ -1,4 +1,4 @@
-import { MOCK_PATIENTS } from '@/domain/patients/mocks/PatientMocks';
+import { AALIYAH, PATIENTS } from '@/domain/patients/__fixtures__/patientFixtures';
 import {
   ageFrom,
   countByStatus,
@@ -8,7 +8,7 @@ import {
   visiblePatients,
 } from '@/domain/patients/patientList';
 
-const aaliyah = MOCK_PATIENTS.find((patient) => patient.id === 'p-aaliyah-kaplan')!;
+const aaliyah = AALIYAH;
 const now = new Date(2026, 10, 6);
 
 describe('patientList', () => {
@@ -34,10 +34,10 @@ describe('patientList', () => {
   });
 
   it('counts every status and filters to one', () => {
-    const counts = countByStatus(MOCK_PATIENTS);
-    expect(counts.all).toBe(MOCK_PATIENTS.length);
+    const counts = countByStatus(PATIENTS);
+    expect(counts.all).toBe(PATIENTS.length);
     expect(counts.suspended).toBe(2);
-    const suspended = visiblePatients(MOCK_PATIENTS, 'suspended', '', 'name');
+    const suspended = visiblePatients(PATIENTS, 'suspended', '', 'name');
     expect(suspended.map((patient) => patient.name)).toEqual(['Brian DeLuca', 'Brian Fischer']);
   });
 });

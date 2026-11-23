@@ -13,14 +13,12 @@ import {
   useBiometricUnlock,
   type BiometricUnlockStatus,
 } from '@/domain/auth/hooks/useBiometricUnlock';
-import { MOCK_USER } from '@/domain/auth/mocks/AuthMocks';
 import { useTheme } from '@/hooks/useTheme';
+import { useAppSelector } from '@/store/hooks';
 import { getFirstName, getInitials } from '@/utils/nameFormat';
 
 const CONTENT_MAX_WIDTH = 420;
 const AVATAR_SIZE = 64;
-
-const SAVED_USER = MOCK_USER;
 
 const STATUS_COPY: Record<
   Exclude<BiometricUnlockStatus, 'success'>,
@@ -51,9 +49,16 @@ const STATUS_COPY: Record<
 export default function UnlockScreen() {
   const theme = useTheme();
   const { status, unlock } = useBiometricUnlock();
+  const name = useAppSelector((state) => state.profile.profile.name);
+  const organization = useAppSelector(
+    (state) => state.auth.me?.organization?.name || state.profile.profile.agency.name
+  );
   const copy =
     status === 'success'
-      ? { title: 'Unlocked', message: `Welcome back, ${getFirstName(SAVED_USER.name)}.` }
+      ? {
+          title: 'Unlocked',
+          message: name ? `Welcome back, ${getFirstName(name)}.` : 'Welcome back.',
+        }
       : STATUS_COPY[status];
   const isBusy = status === 'scanning' || status === 'success';
 
@@ -67,15 +72,21 @@ export default function UnlockScreen() {
         </View>
 
         <View style={styles.body}>
-          <View style={[styles.avatar, { backgroundColor: theme.primaryMuted }]}>
-            <ThemedText themeColor="primary" style={styles.initials}>
-              {getInitials(SAVED_USER.name)}
+          {name ? (
+            <>
+              <View style={[styles.avatar, { backgroundColor: theme.primaryMuted }]}>
+                <ThemedText themeColor="primary" style={styles.initials}>
+                  {getInitials(name)}
+                </ThemedText>
+              </View>
+              <ThemedText style={styles.name}>{name}</ThemedText>
+            </>
+          ) : null}
+          {organization ? (
+            <ThemedText type="small" themeColor="textSecondary" style={styles.organization}>
+              {organization}
             </ThemedText>
-          </View>
-          <ThemedText style={styles.name}>{SAVED_USER.name}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" style={styles.organization}>
-            {SAVED_USER.organization}
-          </ThemedText>
+          ) : null}
 
           <View style={styles.scanner}>
             <BiometricScanner

@@ -13,11 +13,11 @@ const daySchema = z.object({
 export const availabilitySchema = z
   .object({
     startDate: z.date(),
-    endDate: z.date().nullable(),
+    endDate: z.date(),
     days: z.array(daySchema).length(7),
   })
   .superRefine((values, ctx) => {
-    if (values.endDate && toIsoDate(values.endDate) < toIsoDate(values.startDate)) {
+    if (toIsoDate(values.endDate) < toIsoDate(values.startDate)) {
       ctx.addIssue({
         code: 'custom',
         path: ['endDate'],

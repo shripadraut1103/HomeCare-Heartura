@@ -1,5 +1,4 @@
-import { MOCK_PATIENT_CHARTS } from '@/domain/patients/mocks/PatientChartMocks';
-import { MOCK_PATIENTS } from '@/domain/patients/mocks/PatientMocks';
+import { AALIYAH, AALIYAH_CHART } from '@/domain/patients/__fixtures__/patientFixtures';
 import {
   buildPendingNote,
   buildProgressNoteDue,
@@ -10,19 +9,19 @@ import {
   recordSubtitle,
 } from '@/domain/patients/patientRecords';
 
-const patient = MOCK_PATIENTS.find((item) => item.id === 'p-aaliyah-kaplan')!;
-const chart = MOCK_PATIENT_CHARTS[patient.id];
+const patient = AALIYAH;
+const chart = AALIYAH_CHART;
 const record = (id: string) => chart.records.find((item) => item.id === id)!;
 
 describe('patientRecords', () => {
   it('splits the chart into the four documentation tabs', () => {
-    expect(recordsForTab(chart.records, 'daily')).toHaveLength(16);
+    expect(recordsForTab(chart.records, 'daily')).toHaveLength(2);
     expect(recordsForTab(chart.records, 'evaluation').map((item) => item.id)).toEqual([
       'ak-ev1',
       'ak-ev2',
       'ak-ev3',
     ]);
-    expect(recordsForTab(chart.records, 'progress')).toHaveLength(4);
+    expect(recordsForTab(chart.records, 'progress')).toHaveLength(2);
     expect(recordsForTab(chart.records, 'discharge')).toHaveLength(2);
   });
 

@@ -24,7 +24,7 @@ export function GreetingCard({ greeting, firstName, stats, onStatPress }: Greeti
         { borderColor: theme.border, backgroundColor: theme.background, backgroundImage: gradient },
       ]}>
       <ThemedText accessibilityRole="header" style={styles.greeting}>
-        {greeting}, {firstName}
+        {firstName ? `${greeting}, ${firstName}` : greeting}
       </ThemedText>
       <View style={styles.stats}>
         {stats.map((stat) => (

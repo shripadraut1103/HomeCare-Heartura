@@ -1,14 +1,17 @@
 import { getCurrentRange } from '@/domain/profile/availability';
 import type { AvailabilityRange } from '@/domain/profile/interfaces/ProfileInterfaces';
 
-const range = (id: string, startDate: string, endDate?: string): AvailabilityRange => ({
+const range = (id: string, startDate: string, endDate: string): AvailabilityRange => ({
   id,
   startDate,
   endDate,
   days: { mon: [], tue: [], wed: [], thu: [], fri: [], sat: [], sun: [] },
 });
 
-const ranges = [range('fall', '2026-09-01', '2026-12-31'), range('spring', '2027-01-01')];
+const ranges = [
+  range('fall', '2026-09-01', '2026-12-31'),
+  range('spring', '2027-01-01', '2027-12-31'),
+];
 
 describe('getCurrentRange', () => {
   it('picks the range covering today', () => {

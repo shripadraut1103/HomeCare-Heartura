@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import type { HomeSummary } from '@/domain/home/interfaces/HomeInterfaces';
 import { createMockHomeSummary } from '@/domain/home/mocks/HomeMocks';
+import { useProfile } from '@/domain/profile/hooks/useProfile';
 
 /**
  * Data for the Home dashboard.
@@ -10,5 +11,6 @@ import { createMockHomeSummary } from '@/domain/home/mocks/HomeMocks';
  */
 export function useHomeSummary(): HomeSummary {
   const [summary] = useState(createMockHomeSummary);
-  return summary;
+  const { name } = useProfile();
+  return { ...summary, providerName: name };
 }

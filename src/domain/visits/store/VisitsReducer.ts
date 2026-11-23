@@ -1,11 +1,9 @@
 import { createSlice, isAnyOf, type PayloadAction } from '@reduxjs/toolkit';
 
-import { EnvConfig } from '@/config/EnvConfig';
 import type { ApiSchedulingReference } from '@/domain/schedule/interfaces/BookingApi';
 import { toVisit } from '@/domain/visits/appointmentMapper';
 import type { ApiAppointment } from '@/domain/visits/interfaces/AppointmentApi';
 import type { Visit, VisitStatus } from '@/domain/visits/interfaces/VisitInterfaces';
-import { MOCK_VISITS } from '@/domain/visits/mocks/VisitMocks';
 import {
   changeVisitStatusAction,
   createAppointmentsAction,
@@ -28,7 +26,7 @@ export interface VisitsState {
 }
 
 const initialState: VisitsState = {
-  items: EnvConfig.apiUrl ? [] : MOCK_VISITS,
+  items: [],
   loading: false,
   error: null,
   reference: null,

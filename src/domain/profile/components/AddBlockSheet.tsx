@@ -19,34 +19,41 @@ import type { TextFieldProps } from '@/components/ui/TextField';
 import { Radius, Spacing } from '@/constants/Theme';
 import { DateTimeField } from '@/components/ui/DateTimeField';
 import { ToggleRow } from '@/domain/profile/components/ToggleRow';
-import { useAddBlockForm } from '@/domain/profile/hooks/useAddBlockForm';
+import { useBlockForm } from '@/domain/profile/hooks/useBlockForm';
+import type { BlockedDay } from '@/domain/profile/interfaces/ProfileInterfaces';
 import { useTheme } from '@/hooks/useTheme';
 import { haptics } from '@/utils/haptics';
 
 const SheetTextInput = BottomSheetTextInput as NonNullable<TextFieldProps['InputComponent']>;
 
-export function AddBlockSheet({ ref }: { ref: Ref<BottomSheetModal> }) {
+export type BlockSheetData = { block?: BlockedDay };
+
+export function AddBlockSheet({ ref }: { ref: Ref<BottomSheetModal<BlockSheetData>> }) {
   return (
-    <AppBottomSheet
+    <AppBottomSheet<BlockSheetData>
       ref={ref}
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize">
-      {() => <AddBlockContent />}
+      {({ data }) => <AddBlockContent key={data?.block?.id ?? 'new'} block={data?.block} />}
     </AppBottomSheet>
   );
 }
 
-function AddBlockContent() {
+function AddBlockContent({ block }: BlockSheetData) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { dismiss } = useBottomSheetModal();
   const close = () => dismiss();
-  const { control, startDate, specificHours, changeStartDate, submit } = useAddBlockForm(close);
+  const { control, startDate, specificHours, saving, changeStartDate, submit } = useBlockForm(
+    block,
+    close
+  );
+  const isEditing = block !== undefined;
 
   return (
     <BottomSheetView style={{ paddingBottom: insets.bottom + Spacing.three }}>
-      <SheetHeader title="Add block" onClose={close} />
+      <SheetHeader title={isEditing ? 'Edit block' : 'Add block'} onClose={close} />
 
       <View style={styles.body}>
         <FormTextField
@@ -65,13 +72,15 @@ function AddBlockContent() {
           <Controller
             control={control}
             name="startDate"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <DateTimeField
                 label="Start date"
                 mode="date"
                 required
                 value={field.value}
+                minimumDate={isEditing ? undefined : startOfToday()}
                 onChange={changeStartDate}
+                error={fieldState.error?.message}
               />
             )}
           />
@@ -174,14 +183,30 @@ function AddBlockContent() {
       </View>
 
       <View style={[styles.footer, { borderTopColor: theme.border }]}>
-        <Button title="Cancel" variant="secondary" style={styles.flex} onPress={close} />
-        <Button title="Add block" style={styles.flex} onPress={submit} />
+        <Button
+          title="Cancel"
+          variant="secondary"
+          style={styles.flex}
+          disabled={saving}
+          onPress={close}
+        />
+        <Button
+          title={isEditing ? 'Save block' : 'Add block'}
+          style={styles.flex}
+          loading={saving}
+          onPress={submit}
+        />
       </View>
     </BottomSheetView>
   );
 }
 
 const CHECKBOX_SIZE = 22;
+
+const startOfToday = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
 
 const styles = StyleSheet.create({
   body: {

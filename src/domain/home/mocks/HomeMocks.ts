@@ -1,4 +1,3 @@
-import { MOCK_USER } from '@/domain/auth/mocks/AuthMocks';
 import type { HomeSummary } from '@/domain/home/interfaces/HomeInterfaces';
 
 /**
@@ -6,8 +5,7 @@ import type { HomeSummary } from '@/domain/home/interfaces/HomeInterfaces';
  * Delete this file once `useHomeSummary` reads from the service.
  */
 
-export const createMockHomeSummary = (): HomeSummary => ({
-  providerName: MOCK_USER.name,
+export const createMockHomeSummary = (): Omit<HomeSummary, 'providerName'> => ({
   stats: [
     {
       id: 'notes',

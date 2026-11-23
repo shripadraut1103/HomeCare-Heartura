@@ -35,7 +35,7 @@ export default function EditAvailabilityScreen() {
   const changeStartDate = (date: Date) => {
     form.setValue('startDate', date, { shouldDirty: true });
     const endDate = form.getValues('endDate');
-    if (endDate && toIsoDate(endDate) < toIsoDate(date)) {
+    if (toIsoDate(endDate) < toIsoDate(date)) {
       form.setValue('endDate', date, { shouldDirty: true });
     }
   };
@@ -49,22 +49,29 @@ export default function EditAvailabilityScreen() {
             title="Cancel"
             variant="secondary"
             style={styles.flex}
+            disabled={form.saving}
             onPress={() => router.back()}
           />
-          <Button title="Save availability" style={styles.flex} onPress={form.submit} />
+          <Button
+            title="Save availability"
+            style={styles.flex}
+            loading={form.saving}
+            onPress={form.submit}
+          />
         </>
       }>
       <View style={[styles.dates, { borderBottomColor: theme.border }]}>
         <Controller
           control={form.control}
           name="startDate"
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <DateTimeField
               label="Applies from"
               mode="date"
               required
               value={field.value}
               onChange={changeStartDate}
+              error={fieldState.error?.message}
             />
           )}
         />
@@ -74,12 +81,11 @@ export default function EditAvailabilityScreen() {
           render={({ field, fieldState }) => (
             <DateTimeField
               label="To"
-              labelHint="(optional)"
               mode="date"
+              required
               value={field.value}
               minimumDate={startDate}
               onChange={field.onChange}
-              onClear={() => field.onChange(null)}
               error={fieldState.error?.message}
             />
           )}
@@ -113,6 +119,7 @@ export default function EditAvailabilityScreen() {
           title="Delete this availability"
           color="error"
           style={styles.delete}
+          disabled={form.saving}
           onPress={form.remove}
           icon={<Icon name={{ ios: 'trash', android: 'delete' }} size={20} color={theme.error} />}
         />
