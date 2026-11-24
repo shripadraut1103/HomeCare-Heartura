@@ -2,6 +2,7 @@ import type { PersistPartial } from 'redux-persist/es/persistReducer';
 import type { AuthState } from '@/domain/auth/interfaces/AuthInterfaces';
 import type { CommunicationsState } from '@/domain/communications/interfaces/CommunicationInterfaces';
 import type { NotesState } from '@/domain/notes/store/NotesReducer';
+import type { NotificationsState } from '@/domain/notifications/interfaces/NotificationInterfaces';
 import type { PatientsState } from '@/domain/patients/interfaces/PatientInterfaces';
 import type {
   AvailabilityState,
@@ -19,6 +20,7 @@ export interface AppState {
   blockDays: BlockDaysState;
   communications: CommunicationsState;
   notes: NotesState;
+  notifications: NotificationsState;
   patients: PatientsState;
   preferences: PreferencesState;
   profile: ProfileState;

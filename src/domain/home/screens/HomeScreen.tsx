@@ -17,7 +17,7 @@ import { VisitTimelineItem } from '@/domain/home/components/VisitTimelineItem';
 import { useHomeSummary } from '@/domain/home/hooks/useHomeSummary';
 import type { HomeStat } from '@/domain/home/interfaces/HomeInterfaces';
 import { NotificationsSheet } from '@/domain/notifications/components/NotificationsSheet';
-import { useNotifications } from '@/domain/notifications/hooks/useNotifications';
+import { useUnreadNotifications } from '@/domain/notifications/hooks/useNotifications';
 import {
   VisitDetailsSheet,
   type VisitDetailsSheetData,
@@ -36,7 +36,7 @@ const keyExtractor = (visit: Visit) => visit.id;
 export default function HomeScreen() {
   const summary = useHomeSummary();
   const tabBarSpace = useTabBarSpace();
-  const notifications = useNotifications();
+  const unread = useUnreadNotifications();
   const notificationsSheet = useRef<BottomSheetModal<undefined>>(null);
   const visitDetailsSheet = useRef<BottomSheetModal<VisitDetailsSheetData>>(null);
   const visitsLoad = useVisitsLoader(weekRange(new Date()));
@@ -101,7 +101,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <HomeHeader
             date={now}
-            unreadNotifications={notifications.length}
+            unreadNotifications={unread.total}
             onNotificationsPress={() => notificationsSheet.current?.present()}
           />
         </View>

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "96057991639",
+    "project_id": "heartura-4b476",
+    "storage_bucket": "heartura-4b476.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:96057991639:android:afc19c3e7683c2ec8bab92",
+        "android_client_info": {
+          "package_name": "com.heartura"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzqh4mToWS-IsTvinUahewAYdO5xDE8qY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

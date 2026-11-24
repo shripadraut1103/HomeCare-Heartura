@@ -6,53 +6,44 @@ import { IconCircle } from '@/components/ui/IconCircle';
 import { Radius, Shadows, Spacing, type ThemeColor } from '@/constants/Theme';
 import type {
   AppNotification,
-  NotificationKind,
+  NotificationCategory,
 } from '@/domain/notifications/interfaces/NotificationInterfaces';
 import { useTheme } from '@/hooks/useTheme';
+import { formatClockTime } from '@/utils/dateFormat';
 
-const CLOCK: IconName = { ios: 'clock', android: 'schedule' };
-const DOCUMENT: IconName = { ios: 'doc', android: 'description' };
-const WARNING: IconName = { ios: 'exclamationmark.triangle', android: 'warning' };
+const CATEGORY_ICON: Record<NotificationCategory, IconName> = {
+  plans: { ios: 'doc', android: 'description' },
+  office: { ios: 'bubble.left', android: 'chat_bubble' },
+  evv: { ios: 'clock', android: 'schedule' },
+};
 
 type KindStyle = { icon: IconName; color: ThemeColor; background: ThemeColor };
 
-const amber = (icon: IconName): KindStyle => ({
-  icon,
-  color: 'toneAmberFg',
-  background: 'toneAmberBg',
+const styleFor = (notification: AppNotification): KindStyle => ({
+  icon: CATEGORY_ICON[notification.category],
+  color: notification.level === 'attention' ? 'toneAmberFg' : 'toneBlueFg',
+  background: notification.level === 'attention' ? 'toneAmberBg' : 'toneBlueBg',
 });
-const blue = (icon: IconName): KindStyle => ({
-  icon,
-  color: 'toneBlueFg',
-  background: 'toneBlueBg',
-});
-
-const KIND_STYLE: Record<NotificationKind, KindStyle> = {
-  carePlanExpiring: amber(DOCUMENT),
-  progressNoteDue: blue(DOCUMENT),
-  officeMessage: blue({ ios: 'bubble.left', android: 'chat_bubble' }),
-  coverageRequest: amber(WARNING),
-  allotmentChanged: blue({ ios: 'envelope', android: 'mail' }),
-  authorizationEnding: amber(WARNING),
-  missedClockIn: amber(CLOCK),
-  missedClockOut: amber(CLOCK),
-  scheduleChange: blue({ ios: 'calendar', android: 'calendar_month' }),
-  signaturePending: amber({ ios: 'signature', android: 'signature' }),
-};
 
 type NotificationCardProps = {
   notification: AppNotification;
   onPress?: (notification: AppNotification) => void;
+  openable?: boolean;
 };
 
-export function NotificationCard({ notification, onPress }: NotificationCardProps) {
+export function NotificationCard({
+  notification,
+  onPress,
+  openable = true,
+}: NotificationCardProps) {
   const theme = useTheme();
-  const kind = KIND_STYLE[notification.kind];
+  const kind = styleFor(notification);
+  const time = formatClockTime(new Date(notification.createdAt));
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${notification.title}. ${notification.message}`}
+      accessibilityLabel={`${notification.read ? '' : 'Unread. '}${notification.title}. ${notification.message}. ${time}`}
       onPress={onPress ? () => onPress(notification) : undefined}
       style={({ pressed }) => [
         styles.card,
@@ -61,21 +52,35 @@ export function NotificationCard({ notification, onPress }: NotificationCardProp
       ]}>
       <IconCircle icon={kind.icon} color={kind.color} backgroundColor={kind.background} size={36} />
       <View style={styles.body}>
-        <ThemedText numberOfLines={2} style={styles.title}>
+        <ThemedText numberOfLines={2} style={[styles.title, notification.read && styles.titleRead]}>
           {notification.title}
         </ThemedText>
-        <ThemedText numberOfLines={1} themeColor="textSecondary" style={styles.message}>
-          {notification.message}
+        {notification.message ? (
+          <ThemedText numberOfLines={3} themeColor="textSecondary" style={styles.message}>
+            {notification.message}
+          </ThemedText>
+        ) : null}
+        <ThemedText themeColor="textSecondary" style={styles.time}>
+          {time}
         </ThemedText>
       </View>
-      <Icon
-        name={{ ios: 'chevron.right', android: 'chevron_right' }}
-        size={18}
-        color={theme.textSecondary}
-      />
+      <View style={styles.trailing}>
+        {notification.read ? null : (
+          <View style={[styles.unreadDot, { backgroundColor: theme.primary }]} />
+        )}
+        {openable ? (
+          <Icon
+            name={{ ios: 'chevron.right', android: 'chevron_right' }}
+            size={18}
+            color={theme.textSecondary}
+          />
+        ) : null}
+      </View>
     </Pressable>
   );
 }
+
+const UNREAD_DOT = 10;
 
 const styles = StyleSheet.create({
   card: {
@@ -99,9 +104,26 @@ const styles = StyleSheet.create({
     lineHeight: 23,
     fontWeight: 600,
   },
+  titleRead: {
+    fontWeight: 500,
+  },
   message: {
     fontSize: 15,
     lineHeight: 21,
     fontWeight: 400,
+  },
+  time: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: 400,
+  },
+  trailing: {
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  unreadDot: {
+    width: UNREAD_DOT,
+    height: UNREAD_DOT,
+    borderRadius: UNREAD_DOT / 2,
   },
 });

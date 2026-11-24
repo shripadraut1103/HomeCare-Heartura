@@ -11,6 +11,7 @@ import AuthService from '@/domain/auth/store/services/AuthServices';
 import { AUTH_REDUCER } from '@/store/constants/StoreConstants';
 import type { RootState } from '@/store/storeConfig';
 import type { ServiceResult } from '@/types/ServiceInterfaces';
+import { unregisterPushToken } from '@/domain/notifications/pushNotifications';
 
 export const loginAction = createAsyncThunk<
   ServiceResult<LoginResponse>,
@@ -26,6 +27,7 @@ export const fetchMeAction = createAsyncThunk<ServiceResult<AuthMe>, void, { sta
 export const logoutAction = createAsyncThunk<void, void, { state: RootState }>(
   AUTH_REDUCER + '/logout',
   async (_, { getState }) => {
+    await unregisterPushToken();
     const refresh = getState().auth.refreshToken;
     if (refresh) await AuthService.logout(refresh);
   }

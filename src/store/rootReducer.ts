@@ -6,6 +6,7 @@ import authReducer, { sessionExpired } from '@/domain/auth/store/AuthReducer';
 import { logoutAction } from '@/domain/auth/store/async-actions/AuthAsyncActions';
 import communicationsReducer from '@/domain/communications/store/CommunicationsReducer';
 import notesReducer from '@/domain/notes/store/NotesReducer';
+import notificationsReducer from '@/domain/notifications/store/NotificationsReducer';
 import patientsReducer from '@/domain/patients/store/PatientsReducer';
 import availabilityReducer from '@/domain/profile/store/AvailabilityReducer';
 import blockDaysReducer from '@/domain/profile/store/BlockDaysReducer';
@@ -31,6 +32,7 @@ const appReducer = combineReducers({
   blockDays: blockDaysReducer,
   communications: communicationsReducer,
   notes: notesReducer,
+  notifications: notificationsReducer,
   patients: patientsReducer,
   preferences: preferencesReducer,
   profile: profileReducer,

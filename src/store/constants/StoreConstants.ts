@@ -17,3 +17,5 @@ export const AVAILABILITY_REDUCER = 'availability';
 export const COMMUNICATIONS_REDUCER = 'communications';
 
 export const PATIENTS_REDUCER = 'patients';
+
+export const NOTIFICATIONS_REDUCER = 'notifications';
