@@ -32,8 +32,15 @@ export interface TwoFactorChallenge {
   email: string;
 }
 
+export interface LockScreenUser {
+  name: string;
+  organization: string;
+}
+
 export interface AuthState {
   isLoggedIn: boolean;
+  locked: boolean;
+  lockScreenUser: LockScreenUser | null;
   loading: boolean;
   accessToken: string | null;
   refreshToken: string | null;

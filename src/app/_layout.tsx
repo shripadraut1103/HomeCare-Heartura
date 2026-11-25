@@ -12,11 +12,16 @@ import { PersistGate } from 'redux-persist/integration/react';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { ToastHost } from '@/components/ToastHost';
 import { useSessionProfile } from '@/domain/auth/hooks/useSessionProfile';
+import { lockSession } from '@/domain/auth/store/AuthReducer';
 import { useApplyAppearance } from '@/domain/profile/hooks/useApplyAppearance';
 import { useAppSelector } from '@/store/hooks';
 import { persistor, store } from '@/store/storeConfig';
 
 const PUSHED_SCREEN = { animation: 'ios_from_right', fullScreenGestureEnabled: true } as const;
+
+const lockOnLaunch = () => {
+  if (store.getState().preferences.biometricUnlock) store.dispatch(lockSession());
+};
 
 function RootNavigator() {
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn);
@@ -63,7 +68,7 @@ export default function RootLayout() {
 
   return (
     <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
+      <PersistGate loading={null} persistor={persistor} onBeforeLift={lockOnLaunch}>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <GestureHandlerRootView style={styles.root}>
             <BottomSheetModalProvider>

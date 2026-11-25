@@ -1,6 +1,11 @@
 import { serviceError } from '@/config/ApiError';
 import type { LoginFormValues } from '@/domain/auth/schemas/loginSchema';
-import authReducer, { resetAuthReducer } from '@/domain/auth/store/AuthReducer';
+import authReducer, {
+  choosePasswordSignIn,
+  lockSession,
+  resetAuthReducer,
+  unlockSession,
+} from '@/domain/auth/store/AuthReducer';
 import {
   fetchMeAction,
   loginAction,
@@ -171,6 +176,32 @@ describe('AuthReducer', () => {
         id: 'challenge-2',
         expiresAt: '2026-11-17T10:20:00Z',
       });
+    });
+  });
+
+  describe('app lock', () => {
+    const signedIn = { ...initialState, isLoggedIn: true, refreshToken: 'refresh-1' };
+
+    it('locks a signed-in session', () => {
+      const state = authReducer(signedIn, lockSession());
+
+      expect(state).toMatchObject({ isLoggedIn: false, locked: true, refreshToken: 'refresh-1' });
+    });
+
+    it('does not lock when nobody is signed in', () => {
+      expect(authReducer(initialState, lockSession())).toEqual(initialState);
+    });
+
+    it('unlocks back into the session', () => {
+      const state = authReducer(authReducer(signedIn, lockSession()), unlockSession());
+
+      expect(state).toMatchObject({ isLoggedIn: true, locked: false });
+    });
+
+    it('stays signed out but unlocked when the user picks the password', () => {
+      const state = authReducer(authReducer(signedIn, lockSession()), choosePasswordSignIn());
+
+      expect(state).toMatchObject({ isLoggedIn: false, locked: false });
     });
   });
 });

@@ -14,7 +14,8 @@ import {
   type BiometricUnlockStatus,
 } from '@/domain/auth/hooks/useBiometricUnlock';
 import { useTheme } from '@/hooks/useTheme';
-import { useAppSelector } from '@/store/hooks';
+import { choosePasswordSignIn } from '@/domain/auth/store/AuthReducer';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { getFirstName, getInitials } from '@/utils/nameFormat';
 
 const CONTENT_MAX_WIDTH = 420;
@@ -48,10 +49,16 @@ const STATUS_COPY: Record<
 
 export default function UnlockScreen() {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
   const { status, unlock } = useBiometricUnlock();
-  const name = useAppSelector((state) => state.profile.profile.name);
+  const name = useAppSelector(
+    (state) => state.profile.profile.name || state.auth.lockScreenUser?.name
+  );
   const organization = useAppSelector(
-    (state) => state.auth.me?.organization?.name || state.profile.profile.agency.name
+    (state) =>
+      state.auth.me?.organization?.name ||
+      state.profile.profile.agency.name ||
+      state.auth.lockScreenUser?.organization
   );
   const copy =
     status === 'success'
@@ -62,7 +69,11 @@ export default function UnlockScreen() {
       : STATUS_COPY[status];
   const isBusy = status === 'scanning' || status === 'success';
 
-  const goToPassword = () => (router.canGoBack() ? router.back() : router.replace('/'));
+  const goToPassword = () => {
+    dispatch(choosePasswordSignIn());
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
+  };
 
   return (
     <ThemedView type="backgroundScreen" style={styles.container}>

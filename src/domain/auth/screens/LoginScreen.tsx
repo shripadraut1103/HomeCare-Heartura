@@ -1,5 +1,5 @@
 import type { BottomSheetModal } from '@gorhom/bottom-sheet';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
@@ -24,11 +24,16 @@ const FORM_MAX_WIDTH = 420;
 
 export default function LoginScreen() {
   const theme = useTheme();
-  const biometricUnlock = useAppSelector((state) => state.preferences.biometricUnlock);
+  const locked = useAppSelector((state) => state.auth.locked);
+  const canUnlock = useAppSelector(
+    (state) => state.preferences.biometricUnlock && state.auth.refreshToken !== null
+  );
   const forgotPasswordSheet = useRef<BottomSheetModal<ForgotPasswordSheetData>>(null);
   const { control, focusEmail, focusPassword, getEmail, submit, isSubmitting, serverError } =
     useLoginForm();
   const [passwordVisible, setPasswordVisible] = useState(false);
+
+  if (locked) return <Redirect href="/unlock" />;
 
   return (
     <ThemedView type="backgroundScreen" style={styles.container}>
@@ -120,7 +125,7 @@ export default function LoginScreen() {
 
               <Button title="Sign in" loading={isSubmitting} onPress={submit} />
 
-              {biometricUnlock ? (
+              {canUnlock ? (
                 <Button
                   variant="link"
                   title="Sign in with Face ID"

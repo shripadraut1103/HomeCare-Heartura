@@ -1,4 +1,4 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, isFulfilled, type PayloadAction } from '@reduxjs/toolkit';
 
 import type { AuthState, AuthTokens, SignedIn } from '@/domain/auth/interfaces/AuthInterfaces';
 import {
@@ -8,10 +8,17 @@ import {
   resendTwoFactorAction,
   verifyTwoFactorAction,
 } from '@/domain/auth/store/async-actions/AuthAsyncActions';
+import { toProfile } from '@/domain/profile/profileMapper';
+import {
+  fetchProfileAction,
+  updateProfileAction,
+} from '@/domain/profile/store/async-actions/ProfileAsyncActions';
 import { AUTH_REDUCER } from '@/store/constants/StoreConstants';
 
 const initialState: AuthState = {
   isLoggedIn: false,
+  locked: false,
+  lockScreenUser: null,
   loading: false,
   accessToken: null,
   refreshToken: null,
@@ -33,6 +40,7 @@ const startSession = (state: AuthState, { tokens, me }: SignedIn) => {
   state.me = me;
   state.challenge = null;
   state.isLoggedIn = true;
+  state.locked = false;
 };
 
 const AuthReducer = createSlice({
@@ -48,10 +56,16 @@ const AuthReducer = createSlice({
       state.challenge = null;
     },
     lockSession: (state) => {
+      if (!state.isLoggedIn || state.refreshToken === null) return;
       state.isLoggedIn = false;
+      state.locked = true;
     },
     unlockSession: (state) => {
       state.isLoggedIn = state.refreshToken !== null;
+      state.locked = false;
+    },
+    choosePasswordSignIn: (state) => {
+      state.locked = false;
     },
   },
   extraReducers: (builder) => {
@@ -97,7 +111,15 @@ const AuthReducer = createSlice({
         if ('data' in action.payload) state.me = action.payload.data;
       })
       .addCase(logoutAction.fulfilled, () => initialState)
-      .addCase(logoutAction.rejected, () => initialState);
+      .addCase(logoutAction.rejected, () => initialState)
+      .addMatcher(isFulfilled(fetchProfileAction, updateProfileAction), (state, action) => {
+        if (!('data' in action.payload) || !action.payload.data) return;
+        const profile = toProfile(action.payload.data);
+        state.lockScreenUser = {
+          name: profile.name,
+          organization: state.me?.organization?.name || profile.agency.name,
+        };
+      });
   },
 });
 
@@ -109,4 +131,5 @@ export const {
   sessionExpired,
   lockSession,
   unlockSession,
+  choosePasswordSignIn,
 } = AuthReducer.actions;

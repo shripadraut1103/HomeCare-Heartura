@@ -23,7 +23,14 @@ const authPersistConfig: PersistConfig<AuthState> = {
   key: AUTH_REDUCER,
   version: 1,
   storage: secureStorage,
-  whitelist: ['isLoggedIn', 'accessToken', 'refreshToken', 'accessExpiresAt', 'refreshExpiresAt'],
+  whitelist: [
+    'isLoggedIn',
+    'lockScreenUser',
+    'accessToken',
+    'refreshToken',
+    'accessExpiresAt',
+    'refreshExpiresAt',
+  ],
 };
 
 const appReducer = combineReducers({
