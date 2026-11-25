@@ -28,12 +28,18 @@ const INPUT_MAX_HEIGHT = 120;
 const MAX_LENGTH = 2000;
 
 type MessageComposerProps = {
-  onSend: (body: string, attachments: Attachment[]) => void;
+  onSend: (body: string, attachments: Attachment[]) => Promise<boolean>;
   onFocus?: () => void;
   onNotice: (message: string, type?: ToastType) => void;
+  allowAttachments?: boolean;
 };
 
-export function MessageComposer({ onSend, onFocus, onNotice }: MessageComposerProps) {
+export function MessageComposer({
+  onSend,
+  onFocus,
+  onNotice,
+  allowAttachments = true,
+}: MessageComposerProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const picker = useAttachmentPicker();
@@ -45,13 +51,17 @@ export function MessageComposer({ onSend, onFocus, onNotice }: MessageComposerPr
   const canSend = text.trim().length > 0 || attachments.length > 0;
   const room = MAX_ATTACHMENTS - attachments.length;
 
-  const send = () => {
+  const send = async () => {
     if (!canSend) return;
     haptics.tap();
-    onSend(text.trim(), attachments);
+    const draft = text;
+    const draftAttachments = attachments;
     setText('');
     setSelection({ start: 0, end: 0 });
     setAttachments([]);
+    if (await onSend(draft.trim(), draftAttachments)) return;
+    setText((current) => (current ? current : draft));
+    setAttachments((current) => (current.length > 0 ? current : draftAttachments));
   };
 
   const attach = (picked: Attachment[]) => {
@@ -124,16 +134,20 @@ export function MessageComposer({ onSend, onFocus, onNotice }: MessageComposerPr
         />
       ) : null}
       <View style={styles.row}>
-        <ComposerIcon
-          icon={{ ios: 'paperclip', android: 'attach_file' }}
-          label="Attach photo"
-          onPress={openPhotos}
-        />
-        <ComposerIcon
-          icon={{ ios: 'square.and.arrow.up', android: 'upload' }}
-          label="Upload file"
-          onPress={pickFiles}
-        />
+        {allowAttachments ? (
+          <>
+            <ComposerIcon
+              icon={{ ios: 'paperclip', android: 'attach_file' }}
+              label="Attach photo"
+              onPress={openPhotos}
+            />
+            <ComposerIcon
+              icon={{ ios: 'square.and.arrow.up', android: 'upload' }}
+              label="Upload file"
+              onPress={pickFiles}
+            />
+          </>
+        ) : null}
         <ComposerIcon
           icon={{ ios: 'face.smiling', android: 'mood' }}
           label="Emoji"
@@ -159,7 +173,7 @@ export function MessageComposer({ onSend, onFocus, onNotice }: MessageComposerPr
           accessibilityLabel="Send"
           accessibilityState={{ disabled: !canSend }}
           disabled={!canSend}
-          onPress={send}
+          onPress={() => void send()}
           style={({ pressed }) => [
             styles.send,
             { backgroundColor: theme.primary },

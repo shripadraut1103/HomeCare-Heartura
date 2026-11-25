@@ -1,12 +1,14 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, View, type ListRenderItem } from 'react-native';
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
+import { router, useFocusEffect } from 'expo-router';
+import { useRef, useState } from 'react';
+import { RefreshControl, StyleSheet, View, type ListRenderItem } from 'react-native';
 import Animated, { LinearTransition } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTabBarSpace } from '@/components/AppTabs';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
   FLOATING_ACTION_BUTTON_SIZE,
@@ -17,18 +19,24 @@ import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl
 import { TabPanel } from '@/components/ui/TabPanel';
 import { Radius, Spacing } from '@/constants/Theme';
 import { ConversationRow } from '@/domain/communications/components/ConversationRow';
+import {
+  NewConversationSheet,
+  type NewConversationTarget,
+} from '@/domain/communications/components/NewConversationSheet';
 import { filterPreviews, previewText } from '@/domain/communications/conversationList';
 import {
-  useCommunications,
+  useConversationList,
   useConversationPreviews,
 } from '@/domain/communications/hooks/useCommunications';
 import type {
   ConversationPreview,
   ConversationsTab,
 } from '@/domain/communications/interfaces/CommunicationInterfaces';
+import { createConversationAction } from '@/domain/communications/store/async-actions/CommunicationAsyncActions';
 import { useTheme } from '@/hooks/useTheme';
 import { setToastMessage } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
+import { haptics } from '@/utils/haptics';
 
 const CONTENT_MAX_WIDTH = 720;
 
@@ -52,18 +60,38 @@ export default function CommunicationsScreen() {
   const tabBarSpace = useTabBarSpace();
   const [tab, setTab] = useState<ConversationsTab>('all');
   const [query, setQuery] = useState('');
-  const { messages, participants } = useCommunications();
   const previews = useConversationPreviews();
+  const list = useConversationList();
+  const { reload } = list;
+  const newSheet = useRef<BottomSheetModal>(null);
+  useFocusEffect(reload);
 
   const unread = previews.reduce((total, preview) => total + preview.unreadCount, 0);
-  const visible = filterPreviews(previews, messages, tab, query);
+  const visible = filterPreviews(previews, tab, query);
 
   const open = (preview: ConversationPreview) =>
     router.push({ pathname: '/conversation/[id]', params: { id: preview.id } });
 
-  // TODO: open the new-message flow once it is designed.
-  const compose = () =>
-    dispatch(setToastMessage({ message: 'New messages are coming soon.', type: 'warning' }));
+  const compose = () => newSheet.current?.present();
+
+  const startConversation = async (target: NewConversationTarget) => {
+    const result = await dispatch(
+      createConversationAction('office' in target ? { office: true } : target)
+    );
+    const payload = createConversationAction.fulfilled.match(result) ? result.payload : null;
+    if (!payload || 'error' in payload) {
+      haptics.error();
+      dispatch(
+        setToastMessage({
+          message: payload?.error || 'Couldn’t start that conversation. Try again.',
+          type: 'error',
+        })
+      );
+      return false;
+    }
+    router.push({ pathname: '/conversation/[id]', params: { id: payload.data.id } });
+    return true;
+  };
 
   const renderPreview: ListRenderItem<ConversationPreview> = ({ item, index }) => (
     <View
@@ -73,11 +101,7 @@ export default function CommunicationsScreen() {
         index === 0 && styles.first,
         index === visible.length - 1 && styles.last,
       ]}>
-      <ConversationRow
-        preview={item}
-        previewText={previewText(item, participants)}
-        onPress={open}
-      />
+      <ConversationRow preview={item} previewText={previewText(item)} onPress={open} />
     </View>
   );
 
@@ -89,7 +113,7 @@ export default function CommunicationsScreen() {
             Communications
           </ThemedText>
           <ThemedText themeColor="textSecondary" style={styles.subtitle}>
-            {unread > 0 ? `${unread} unread` : 'All caught up'}
+            {!list.loaded ? ' ' : unread > 0 ? `${unread} unread` : 'All caught up'}
           </ThemedText>
         </View>
 
@@ -104,12 +128,24 @@ export default function CommunicationsScreen() {
             keyExtractor={keyExtractor}
             renderItem={renderPreview}
             itemLayoutAnimation={LinearTransition.duration(180)}
+            refreshControl={
+              <RefreshControl refreshing={list.loading && list.loaded} onRefresh={reload} />
+            }
             ListEmptyComponent={
-              <EmptyState
-                message={
-                  query.trim() ? `No messages match “${query.trim()}”.` : EMPTY_MESSAGES[tab]
-                }
-              />
+              !list.loaded && list.error ? (
+                <View style={styles.state}>
+                  <EmptyState message={list.error} />
+                  <Button title="Try again" variant="secondary" size="small" onPress={reload} />
+                </View>
+              ) : !list.loaded ? (
+                <EmptyState message="Loading conversations…" />
+              ) : (
+                <EmptyState
+                  message={
+                    query.trim() ? `No messages match “${query.trim()}”.` : EMPTY_MESSAGES[tab]
+                  }
+                />
+              )
             }
             keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
@@ -129,6 +165,7 @@ export default function CommunicationsScreen() {
           onPress={compose}
         />
       </View>
+      <NewConversationSheet ref={newSheet} onPick={startConversation} />
     </ThemedView>
   );
 }
@@ -191,5 +228,9 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: Spacing.three,
+  },
+  state: {
+    alignItems: 'center',
+    gap: Spacing.three,
   },
 });

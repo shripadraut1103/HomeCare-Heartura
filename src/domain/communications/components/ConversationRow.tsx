@@ -18,7 +18,7 @@ type ConversationRowProps = {
 export function ConversationRow({ preview, previewText, onPress }: ConversationRowProps) {
   const theme = useTheme();
   const unread = preview.unreadCount > 0;
-  const time = preview.lastMessage ? formatConversationTime(preview.lastMessage.sentAt) : null;
+  const time = formatConversationTime(preview.lastMessage?.sentAt ?? preview.lastActivityAt);
 
   return (
     <Pressable

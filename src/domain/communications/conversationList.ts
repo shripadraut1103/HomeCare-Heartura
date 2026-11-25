@@ -1,10 +1,7 @@
-import { messageSummary } from '@/domain/communications/attachments';
 import type {
   ConversationPreview,
   ConversationsTab,
-  Conversation,
   Message,
-  Participant,
 } from '@/domain/communications/interfaces/CommunicationInterfaces';
 import { formatRelativeDay, formatTime } from '@/utils/dateFormat';
 import { getFirstName } from '@/utils/nameFormat';
@@ -17,26 +14,8 @@ const weekdayFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'long' });
 const dayStart = (date: Date) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 
-export function buildPreviews(
-  conversations: Conversation[],
-  messages: Message[]
-): ConversationPreview[] {
-  const latest = new Map<string, Message>();
-  for (const message of messages) {
-    const current = latest.get(message.conversationId);
-    if (!current || message.sentAt > current.sentAt) latest.set(message.conversationId, message);
-  }
-  return conversations
-    .map((conversation) => ({ ...conversation, lastMessage: latest.get(conversation.id) ?? null }))
-    .sort((a, b) => {
-      if (!a.lastMessage || !b.lastMessage) return a.lastMessage ? -1 : b.lastMessage ? 1 : 0;
-      return b.lastMessage.sentAt.localeCompare(a.lastMessage.sentAt);
-    });
-}
-
 export function filterPreviews(
   previews: ConversationPreview[],
-  messages: Message[],
   tab: ConversationsTab,
   query: string
 ): ConversationPreview[] {
@@ -45,16 +24,8 @@ export function filterPreviews(
     if (tab === 'unread' && preview.unreadCount === 0) return false;
     if (tab === 'groups' && preview.kind !== 'group') return false;
     if (!needle) return true;
-    return (
-      preview.title.toLowerCase().includes(needle) ||
-      messages.some(
-        (message) =>
-          message.conversationId === preview.id &&
-          (message.body.toLowerCase().includes(needle) ||
-            message.attachments?.some((attachment) =>
-              attachment.name.toLowerCase().includes(needle)
-            ))
-      )
+    return [preview.title, preview.patientName, preview.lastMessage?.body].some((text) =>
+      text?.toLowerCase().includes(needle)
     );
   });
 }
@@ -68,14 +39,12 @@ export function formatConversationTime(iso: string, now = new Date()) {
   return shortDateFormatter.format(date);
 }
 
-export function previewText(preview: ConversationPreview, participants: Participant[]) {
+export function previewText(preview: ConversationPreview) {
   const message = preview.lastMessage;
   if (!message) return 'No messages yet';
-  const summary = messageSummary(message);
-  if (message.senderId === null) return `You: ${summary}`;
-  if (preview.kind === 'direct') return summary;
-  const sender = participants.find((participant) => participant.id === message.senderId);
-  return sender ? `${getFirstName(sender.name)}: ${summary}` : summary;
+  if (message.mine) return `You: ${message.body}`;
+  if (preview.kind === 'direct' || !message.senderName) return message.body;
+  return `${getFirstName(message.senderName)}: ${message.body}`;
 }
 
 export type ChatItem =

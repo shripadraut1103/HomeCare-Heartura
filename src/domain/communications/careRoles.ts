@@ -14,4 +14,17 @@ export const CARE_ROLE: Record<
   pt: { label: 'PT', color: 'toneBlueFg', background: 'toneBlueBg', bubble: 'toneBlueBg' },
   pta: { label: 'PTA', color: 'success', background: 'toneTealBg', bubble: 'toneTealBg' },
   ot: { label: 'OT', color: 'tonePurpleFg', background: 'tonePurpleBg', bubble: 'tonePurpleBg' },
+  cota: {
+    label: 'COTA',
+    color: 'tonePurpleFg',
+    background: 'tonePurpleBg',
+    bubble: 'tonePurpleBg',
+  },
+  speech: {
+    label: 'Speech',
+    color: 'toneAmberFg',
+    background: 'toneAmberBg',
+    bubble: 'toneAmberBg',
+  },
+  dsp: { label: 'DSP', color: 'toneRoseFg', background: 'toneRoseBg', bubble: 'toneRoseBg' },
 };

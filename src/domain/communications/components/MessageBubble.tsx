@@ -48,7 +48,7 @@ type MessageAction = 'save' | 'copy' | 'delete';
 
 type MessageBubbleProps = {
   message: Message;
-  sender: Participant | undefined;
+  sender: Participant;
   showSender: boolean;
   active: boolean;
   faded: boolean;
@@ -71,13 +71,15 @@ export function MessageBubble({
 }: MessageBubbleProps) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
-  const mine = message.senderId === null;
+  const mine = message.mine;
+  const canDelete = mine && !message.sending;
   const attachments = message.attachments ?? [];
   const hasText = message.body.length > 0;
-  const toolbarWidth = ACTION_SIZE * (hasText ? 3 : 2) + TOOLBAR_PADDING * 2;
+  const toolbarWidth =
+    ACTION_SIZE * (1 + (hasText ? 1 : 0) + (canDelete ? 1 : 0)) + TOOLBAR_PADDING * 2;
   const background: ThemeColor = mine
     ? 'primaryMuted'
-    : sender
+    : sender.role
       ? CARE_ROLE[sender.role].bubble
       : 'backgroundElement';
 
@@ -97,6 +99,7 @@ export function MessageBubble({
   }, [faded, opacity]);
 
   const select = () => {
+    if (message.sending) return;
     haptics.tap();
     onActivate(message);
   };
@@ -138,13 +141,11 @@ export function MessageBubble({
       <GestureDetector gesture={gesture}>
         <Animated.View
           accessible
-          accessibilityHint={
-            hasText ? 'Long press for save, copy and delete' : 'Long press for save and delete'
-          }
+          accessibilityHint="Long press for more actions"
           accessibilityActions={[
             { name: 'save', label: message.saved ? 'Remove from saved' : 'Save' },
             ...(hasText ? [{ name: 'copy', label: 'Copy' }] : []),
-            { name: 'delete', label: 'Delete' },
+            ...(canDelete ? [{ name: 'delete', label: 'Delete' }] : []),
           ]}
           onAccessibilityAction={({ nativeEvent }) =>
             onAction(nativeEvent.actionName as MessageAction, message)
@@ -154,6 +155,7 @@ export function MessageBubble({
             styles.bubble,
             { backgroundColor: theme[background], borderColor: theme.border },
             message.saved && [styles.saved, { borderLeftColor: theme.primary }],
+            message.sending && styles.sending,
             active && [styles.selected, { borderColor: theme.primary }],
             bubbleStyle,
           ]}>
@@ -161,12 +163,32 @@ export function MessageBubble({
             pointerEvents="none"
             style={[styles.dim, { backgroundColor: theme.text }, dimStyle]}
           />
-          {showSender && sender ? (
+          {showSender && !mine ? (
             <View style={styles.sender}>
               <ThemedText numberOfLines={1} style={styles.senderName}>
                 {sender.name}
               </ThemedText>
-              <RolePill role={sender.role} />
+              {sender.role ? <RolePill role={sender.role} /> : null}
+            </View>
+          ) : null}
+          {message.replyTo ? (
+            <View style={[styles.reply, { borderLeftColor: theme.primary }]}>
+              {message.replyTo.available ? (
+                <>
+                  {message.replyTo.senderName ? (
+                    <ThemedText numberOfLines={1} style={styles.replySender}>
+                      {message.replyTo.senderName}
+                    </ThemedText>
+                  ) : null}
+                  <ThemedText numberOfLines={2} themeColor="textSecondary" style={styles.replyBody}>
+                    {message.replyTo.body}
+                  </ThemedText>
+                </>
+              ) : (
+                <ThemedText themeColor="textSecondary" style={styles.replyBody}>
+                  Original message unavailable
+                </ThemedText>
+              )}
             </View>
           ) : null}
           {attachments.length > 0 ? (
@@ -182,7 +204,7 @@ export function MessageBubble({
               />
             ) : null}
             <ThemedText themeColor="textSecondary" style={styles.time}>
-              {formatTime(new Date(message.sentAt))}
+              {message.sending ? 'Sending…' : formatTime(new Date(message.sentAt))}
             </ThemedText>
           </View>
         </Animated.View>
@@ -215,12 +237,14 @@ export function MessageBubble({
               onPress={() => onAction('copy', message)}
             />
           ) : null}
-          <ToolbarAction
-            icon={{ ios: 'trash', android: 'delete' }}
-            label="Delete"
-            color="error"
-            onPress={() => onAction('delete', message)}
-          />
+          {canDelete ? (
+            <ToolbarAction
+              icon={{ ios: 'trash', android: 'delete' }}
+              label="Delete"
+              color="error"
+              onPress={() => onAction('delete', message)}
+            />
+          ) : null}
         </Animated.View>
       ) : null}
     </Animated.View>
@@ -275,6 +299,24 @@ const styles = StyleSheet.create({
   },
   selected: {
     ...Shadows.raised,
+  },
+  sending: {
+    opacity: 0.6,
+  },
+  reply: {
+    gap: Spacing.half,
+    paddingLeft: Spacing.two,
+    borderLeftWidth: SAVED_BAR_WIDTH,
+  },
+  replySender: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: 600,
+  },
+  replyBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: 400,
   },
   dim: {
     ...StyleSheet.absoluteFill,

@@ -2,8 +2,10 @@ import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import { useEffect, useRef, useState } from 'react';
+import { nanoid } from '@reduxjs/toolkit';
+import { useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Pressable,
   StyleSheet,
@@ -16,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Icon } from '@/components/ui/Icon';
 import { Radius, Spacing } from '@/constants/Theme';
@@ -28,18 +31,19 @@ import { ImageViewer } from '@/domain/communications/components/ImageViewer';
 import { MessageBubble } from '@/domain/communications/components/MessageBubble';
 import { MessageComposer } from '@/domain/communications/components/MessageComposer';
 import { RolePill } from '@/domain/communications/components/RolePill';
+import { senderOf } from '@/domain/communications/communicationMapper';
 import { buildChatItems, type ChatItem } from '@/domain/communications/conversationList';
-import { useConversation, useParticipants } from '@/domain/communications/hooks/useCommunications';
+import { useConversation } from '@/domain/communications/hooks/useCommunications';
 import type {
   Attachment,
+  CareRole,
   Message,
 } from '@/domain/communications/interfaces/CommunicationInterfaces';
 import {
-  deleteMessage,
-  markConversationRead,
-  sendMessage,
-  toggleMessageSaved,
-} from '@/domain/communications/store/CommunicationsReducer';
+  deleteMessageAction,
+  sendMessageAction,
+} from '@/domain/communications/store/async-actions/CommunicationAsyncActions';
+import { toggleMessageSaved } from '@/domain/communications/store/CommunicationsReducer';
 import { useTheme } from '@/hooks/useTheme';
 import { setToastMessage, type ToastType } from '@/store/common-reducer/ToastReducer';
 import { useAppDispatch } from '@/store/hooks';
@@ -54,31 +58,35 @@ export default function ConversationScreen() {
   const theme = useTheme();
   const dispatch = useAppDispatch();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { conversation, messages } = useConversation(id);
-  const participants = useParticipants();
+  const thread = useConversation(id);
+  const { conversation, messages, members } = thread;
   const listRef = useRef<FlatList<ChatItem>>(null);
   const deleteSheet = useRef<BottomSheetModal<DeleteMessageSheetData>>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<Attachment | null>(null);
 
-  const unreadCount = conversation?.unreadCount ?? 0;
-  useEffect(() => {
-    if (unreadCount > 0) dispatch(markConversationRead({ conversationId: id }));
-  }, [dispatch, id, unreadCount]);
-
   const items = buildChatItems(messages);
   const dismiss = () => setActiveId(null);
+  const roles: CareRole[] =
+    conversation?.kind === 'group'
+      ? [...new Set((members ?? []).flatMap((member) => (member.role ? [member.role] : [])))]
+      : (conversation?.roles ?? []);
 
-  const send = (body: string, attachments: Attachment[]) => {
-    // TODO: upload attachments to the messaging API and store the returned URLs instead of local URIs.
-    dispatch(
-      sendMessage({
+  const send = async (body: string) => {
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    const result = await dispatch(
+      sendMessageAction({
         conversationId: id,
         body,
-        attachments: attachments.length > 0 ? attachments : undefined,
+        tempId: `pending-${nanoid()}`,
+        sentAt: new Date().toISOString(),
       })
     );
-    listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    const payload = sendMessageAction.fulfilled.match(result) ? result.payload : null;
+    if (payload && !('error' in payload)) return true;
+    haptics.error();
+    notice(payload?.error || 'Couldn’t send your message. Try again.', 'error');
+    return false;
   };
 
   const onAction = async (action: 'save' | 'copy' | 'delete', message: Message) => {
@@ -121,10 +129,16 @@ export default function ConversationScreen() {
     else void share(attachment);
   };
 
-  const remove = (messageId: string) => {
+  const remove = async (messageId: string) => {
     haptics.tap();
-    dispatch(deleteMessage({ messageId }));
-    dispatch(setToastMessage({ message: 'Message deleted' }));
+    const result = await dispatch(deleteMessageAction({ messageId, conversationId: id }));
+    const payload = deleteMessageAction.fulfilled.match(result) ? result.payload : null;
+    if (!payload || 'error' in payload) {
+      haptics.error();
+      notice(payload?.error || 'Couldn’t delete that message. Try again.', 'error');
+      return;
+    }
+    notice('Message deleted');
   };
 
   const renderItem: ListRenderItem<ChatItem> = ({ item }) =>
@@ -140,7 +154,7 @@ export default function ConversationScreen() {
       <Animated.View entering={FadeInDown.duration(200)} exiting={FadeOut.duration(160)}>
         <MessageBubble
           message={item.message}
-          sender={participants.find((participant) => participant.id === item.message.senderId)}
+          sender={senderOf(item.message, members)}
           showSender={conversation?.kind === 'group'}
           active={item.message.id === activeId}
           faded={activeId !== null && item.message.id !== activeId}
@@ -178,9 +192,14 @@ export default function ConversationScreen() {
                   {conversation.title}
                 </ThemedText>
                 <View style={styles.roles}>
-                  {conversation.roles.map((role) => (
+                  {roles.map((role) => (
                     <RolePill key={role} role={role} />
                   ))}
+                  {conversation.kind === 'group' ? (
+                    <ThemedText themeColor="textSecondary" style={styles.members}>
+                      {conversation.memberCount} members
+                    </ThemedText>
+                  ) : null}
                 </View>
               </View>
             </>
@@ -193,7 +212,16 @@ export default function ConversationScreen() {
       </SafeAreaView>
 
       <KeyboardAvoidingView behavior="padding" style={styles.container}>
-        {!conversation ? (
+        {thread.loading ? (
+          <View style={[styles.container, styles.content]}>
+            <ActivityIndicator accessibilityLabel="Loading messages" />
+          </View>
+        ) : thread.error ? (
+          <View style={[styles.container, styles.content, styles.state]}>
+            <EmptyState message={thread.error} />
+            <Button title="Try again" variant="secondary" size="small" onPress={thread.retry} />
+          </View>
+        ) : !conversation ? (
           <View style={styles.content}>
             <EmptyState message="This conversation is no longer available." />
           </View>
@@ -216,6 +244,11 @@ export default function ConversationScreen() {
             skipEnteringExitingAnimations
             ItemSeparatorComponent={MessageSeparator}
             onScrollBeginDrag={dismiss}
+            onEndReached={thread.hasMore ? thread.loadOlder : undefined}
+            onEndReachedThreshold={0.3}
+            ListFooterComponent={
+              thread.loadingOlder ? <ActivityIndicator style={styles.older} /> : undefined
+            }
             keyboardDismissMode="interactive"
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.content}
@@ -223,11 +256,16 @@ export default function ConversationScreen() {
           />
         )}
         {conversation ? (
-          <MessageComposer onSend={send} onFocus={dismiss} onNotice={notice} />
+          <MessageComposer
+            onSend={send}
+            onFocus={dismiss}
+            onNotice={notice}
+            allowAttachments={false}
+          />
         ) : null}
       </KeyboardAvoidingView>
 
-      <DeleteMessageSheet ref={deleteSheet} onDelete={remove} />
+      <DeleteMessageSheet ref={deleteSheet} onDelete={(messageId) => void remove(messageId)} />
       <ImageViewer image={viewing} onClose={() => setViewing(null)} onShare={share} />
     </ThemedView>
   );
@@ -271,7 +309,19 @@ const styles = StyleSheet.create({
   roles: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
     gap: Spacing.one + Spacing.half,
+  },
+  members: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  state: {
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  older: {
+    paddingVertical: Spacing.three,
   },
   content: {
     width: '100%',
