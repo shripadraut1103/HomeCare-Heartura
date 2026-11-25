@@ -8,4 +8,5 @@ export const loginSchema = z.object({
 
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
-export const toTenant = (organization: string) => organization.trim().toLowerCase();
+export const toTenant = (organization: string) =>
+  organization.trim().toLowerCase().replace(/\s+/g, '-');

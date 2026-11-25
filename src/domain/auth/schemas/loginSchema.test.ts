@@ -38,4 +38,8 @@ describe('loginSchema', () => {
   it('sends the organization trimmed and in lowercase', () => {
     expect(toTenant('  Hope ')).toBe('hope');
   });
+
+  it('joins the words of the organization with hyphens', () => {
+    expect(toTenant(' Two  Words ')).toBe('two-words');
+  });
 });
