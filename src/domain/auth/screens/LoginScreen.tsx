@@ -2,7 +2,8 @@ import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { Redirect, router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/BrandLogo';
@@ -38,116 +39,116 @@ export default function LoginScreen() {
   return (
     <ThemedView type="backgroundScreen" style={styles.container}>
       <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView
+        <KeyboardAwareScrollView
+          bottomOffset={KEYBOARD_GAP}
           style={styles.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled">
-            <ThemedView style={[styles.card, { borderColor: theme.border }]}>
-              <View style={styles.logo}>
-                <BrandLogo />
-              </View>
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled">
+          <ThemedView style={[styles.card, { borderColor: theme.border }]}>
+            <View style={styles.logo}>
+              <BrandLogo />
+            </View>
 
-              <View style={styles.header}>
-                <ThemedText accessibilityRole="header" style={styles.title}>
-                  Sign In
-                </ThemedText>
-                <ThemedText themeColor="textSecondary" style={styles.subtitle}>
-                  Use your work email to open the app.
-                </ThemedText>
-              </View>
+            <View style={styles.header}>
+              <ThemedText accessibilityRole="header" style={styles.title}>
+                Sign In
+              </ThemedText>
+              <ThemedText themeColor="textSecondary" style={styles.subtitle}>
+                Use your work email to open the app.
+              </ThemedText>
+            </View>
 
-              <View style={styles.form}>
-                <FormTextField
-                  control={control}
-                  name="organization"
-                  label="Organization"
-                  placeholder="e.g. hope"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoComplete="organization"
-                  textContentType="organizationName"
-                  returnKeyType="next"
-                  submitBehavior="submit"
-                  onSubmitEditing={focusEmail}
-                />
-                <FormTextField
-                  control={control}
-                  name="email"
-                  label="Email"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoComplete="email"
-                  textContentType="username"
-                  returnKeyType="next"
-                  submitBehavior="submit"
-                  onSubmitEditing={focusPassword}
-                />
-                <FormTextField
-                  control={control}
-                  name="password"
-                  label="Password"
-                  secureTextEntry={!passwordVisible}
-                  autoCorrect={false}
-                  accessory={
-                    <PasswordVisibilityToggle
-                      label="Password"
-                      visible={passwordVisible}
-                      onToggle={() => setPasswordVisible((current) => !current)}
-                    />
-                  }
-                  autoCapitalize="none"
-                  autoComplete="password"
-                  textContentType="password"
-                  returnKeyType="go"
-                  onSubmitEditing={submit}
-                />
-                <Button
-                  variant="link"
-                  size="small"
-                  title="Forgot password?"
-                  style={styles.forgotPassword}
-                  onPress={() => forgotPasswordSheet.current?.present({ email: getEmail() })}
-                />
-              </View>
+            <View style={styles.form}>
+              <FormTextField
+                control={control}
+                name="organization"
+                label="Organization"
+                placeholder="e.g. hope"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="organization"
+                textContentType="organizationName"
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={focusEmail}
+              />
+              <FormTextField
+                control={control}
+                name="email"
+                label="Email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="username"
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={focusPassword}
+              />
+              <FormTextField
+                control={control}
+                name="password"
+                label="Password"
+                secureTextEntry={!passwordVisible}
+                autoCorrect={false}
+                accessory={
+                  <PasswordVisibilityToggle
+                    label="Password"
+                    visible={passwordVisible}
+                    onToggle={() => setPasswordVisible((current) => !current)}
+                  />
+                }
+                autoCapitalize="none"
+                autoComplete="password"
+                textContentType="password"
+                returnKeyType="go"
+                onSubmitEditing={submit}
+              />
+              <Button
+                variant="link"
+                size="small"
+                title="Forgot password?"
+                style={styles.forgotPassword}
+                onPress={() => forgotPasswordSheet.current?.present({ email: getEmail() })}
+              />
+            </View>
 
-              {serverError ? (
-                <ThemedText
-                  type="small"
-                  themeColor="error"
-                  accessibilityRole="alert"
-                  style={styles.serverError}>
-                  {serverError}
-                </ThemedText>
-              ) : null}
+            {serverError ? (
+              <ThemedText
+                type="small"
+                themeColor="error"
+                accessibilityRole="alert"
+                style={styles.serverError}>
+                {serverError}
+              </ThemedText>
+            ) : null}
 
-              <Button title="Sign in" loading={isSubmitting} onPress={submit} />
+            <Button title="Sign in" loading={isSubmitting} onPress={submit} />
 
-              {canUnlock ? (
-                <Button
-                  variant="link"
-                  title="Sign in with Face ID"
-                  style={styles.faceId}
-                  onPress={() => router.push('/unlock')}
-                  icon={
-                    <SymbolView
-                      name={{ ios: 'lock', android: 'lock', web: 'lock' }}
-                      size={16}
-                      tintColor={theme.primary}
-                    />
-                  }
-                />
-              ) : null}
-            </ThemedView>
-          </ScrollView>
-        </KeyboardAvoidingView>
+            {canUnlock ? (
+              <Button
+                variant="link"
+                title="Sign in with Face ID"
+                style={styles.faceId}
+                onPress={() => router.push('/unlock')}
+                icon={
+                  <SymbolView
+                    name={{ ios: 'lock', android: 'lock', web: 'lock' }}
+                    size={16}
+                    tintColor={theme.primary}
+                  />
+                }
+              />
+            ) : null}
+          </ThemedView>
+        </KeyboardAwareScrollView>
       </SafeAreaView>
       <ForgotPasswordSheet ref={forgotPasswordSheet} />
     </ThemedView>
   );
 }
+
+const KEYBOARD_GAP = Spacing.four;
 
 const styles = StyleSheet.create({
   container: {

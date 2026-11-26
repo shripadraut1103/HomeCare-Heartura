@@ -1,5 +1,6 @@
 import { Redirect } from 'expo-router';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandLogo } from '@/components/BrandLogo';
@@ -23,78 +24,78 @@ export default function VerifyCodeScreen() {
   return (
     <ThemedView type="backgroundScreen" style={styles.container}>
       <SafeAreaView style={styles.container}>
-        <KeyboardAvoidingView
+        <KeyboardAwareScrollView
+          bottomOffset={KEYBOARD_GAP}
           style={styles.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled">
-            <ThemedView style={[styles.card, { borderColor: theme.border }]}>
-              <View style={styles.logo}>
-                <BrandLogo />
-              </View>
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled">
+          <ThemedView style={[styles.card, { borderColor: theme.border }]}>
+            <View style={styles.logo}>
+              <BrandLogo />
+            </View>
 
-              <View style={styles.header}>
-                <ThemedText accessibilityRole="header" style={styles.title}>
-                  Enter the code
-                </ThemedText>
-                <ThemedText themeColor="textSecondary" style={styles.subtitle}>
-                  We emailed a {CODE_LENGTH}-digit code to{' '}
-                  <ThemedText style={[styles.subtitle, styles.email]}>{form.email}</ThemedText>.
-                </ThemedText>
-              </View>
-
-              <CodeInput
-                value={form.code}
-                length={CODE_LENGTH}
-                onChange={form.changeCode}
-                onSubmit={form.verify}
-                error={Boolean(form.error)}
-                disabled={form.verifying || form.expired}
-              />
-
-              <ThemedText
-                themeColor={form.expired ? 'error' : 'textSecondary'}
-                accessibilityLiveRegion="polite"
-                style={styles.countdown}>
-                {form.expired
-                  ? 'This code has expired. Send a new one.'
-                  : `Code expires in ${form.countdown}`}
+            <View style={styles.header}>
+              <ThemedText accessibilityRole="header" style={styles.title}>
+                Enter the code
               </ThemedText>
+              <ThemedText themeColor="textSecondary" style={styles.subtitle}>
+                We emailed a {CODE_LENGTH}-digit code to{' '}
+                <ThemedText style={[styles.subtitle, styles.email]}>{form.email}</ThemedText>.
+              </ThemedText>
+            </View>
 
-              {form.error ? (
-                <ThemedText
-                  type="small"
-                  themeColor="error"
-                  accessibilityRole="alert"
-                  style={styles.error}>
-                  {form.error}
-                </ThemedText>
-              ) : null}
+            <CodeInput
+              value={form.code}
+              length={CODE_LENGTH}
+              onChange={form.changeCode}
+              onSubmit={form.verify}
+              error={Boolean(form.error)}
+              disabled={form.verifying || form.expired}
+            />
 
+            <ThemedText
+              themeColor={form.expired ? 'error' : 'textSecondary'}
+              accessibilityLiveRegion="polite"
+              style={styles.countdown}>
+              {form.expired
+                ? 'This code has expired. Send a new one.'
+                : `Code expires in ${form.countdown}`}
+            </ThemedText>
+
+            {form.error ? (
+              <ThemedText
+                type="small"
+                themeColor="error"
+                accessibilityRole="alert"
+                style={styles.error}>
+                {form.error}
+              </ThemedText>
+            ) : null}
+
+            <Button
+              title="Verify"
+              loading={form.verifying}
+              disabled={form.code.length !== CODE_LENGTH || form.expired}
+              onPress={form.verify}
+            />
+
+            <View style={styles.links}>
+              <Button variant="link" title="Back to sign in" onPress={form.backToLogin} />
               <Button
-                title="Verify"
-                loading={form.verifying}
-                disabled={form.code.length !== CODE_LENGTH || form.expired}
-                onPress={form.verify}
+                variant="link"
+                title={form.resending ? 'Sending…' : 'Resend code'}
+                disabled={form.resending}
+                onPress={form.resend}
               />
-
-              <View style={styles.links}>
-                <Button variant="link" title="Back to sign in" onPress={form.backToLogin} />
-                <Button
-                  variant="link"
-                  title={form.resending ? 'Sending…' : 'Resend code'}
-                  disabled={form.resending}
-                  onPress={form.resend}
-                />
-              </View>
-            </ThemedView>
-          </ScrollView>
-        </KeyboardAvoidingView>
+            </View>
+          </ThemedView>
+        </KeyboardAwareScrollView>
       </SafeAreaView>
     </ThemedView>
   );
 }
+
+const KEYBOARD_GAP = Spacing.four;
 
 const styles = StyleSheet.create({
   container: {

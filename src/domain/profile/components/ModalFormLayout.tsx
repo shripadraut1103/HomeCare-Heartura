@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -35,14 +36,14 @@ export function ModalFormLayout({ title, children, footer }: ModalFormLayoutProp
           </ThemedText>
         </View>
 
-        <ScrollView
+        <KeyboardAwareScrollView
+          bottomOffset={KEYBOARD_GAP}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}>
           {children}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </View>
 
       <View
@@ -55,6 +56,8 @@ export function ModalFormLayout({ title, children, footer }: ModalFormLayoutProp
     </ThemedView>
   );
 }
+
+const KEYBOARD_GAP = Spacing.four;
 
 const styles = StyleSheet.create({
   container: {

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/ThemedText';
@@ -39,14 +40,14 @@ export function NoteEditorLayout({
         <ScreenHeader title={title} subtitle={subtitle} />
         {top}
         {banner}
-        <ScrollView
+        <KeyboardAwareScrollView
+          bottomOffset={KEYBOARD_GAP}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
-          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}>
           {children}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </SafeAreaView>
 
       <View
@@ -78,6 +79,8 @@ export function NoteNotFound({ title }: { title: string }) {
     </ThemedView>
   );
 }
+
+const KEYBOARD_GAP = Spacing.four;
 
 const styles = StyleSheet.create({
   container: {

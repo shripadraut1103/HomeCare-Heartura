@@ -18,6 +18,13 @@
         "EXPO_PUBLIC_API_URL": "https://d30s9lo6ha6axd.cloudfront.net"
       }
     },
+    "qa": {
+      "extends": "preview",
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "qa",
+        "EXPO_PUBLIC_API_URL": "https://d37hwu5fijm6v5.cloudfront.net"
+      }
+    },
     "production": {
       "autoIncrement": true
     }
