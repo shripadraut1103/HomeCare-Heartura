@@ -5,6 +5,7 @@ import type { AuthState } from '@/domain/auth/interfaces/AuthInterfaces';
 import authReducer, { sessionExpired } from '@/domain/auth/store/AuthReducer';
 import { logoutAction } from '@/domain/auth/store/async-actions/AuthAsyncActions';
 import communicationsReducer from '@/domain/communications/store/CommunicationsReducer';
+import logsReducer from '@/domain/logs/store/LogsReducer';
 import notesReducer from '@/domain/notes/store/NotesReducer';
 import notificationsReducer from '@/domain/notifications/store/NotificationsReducer';
 import patientsReducer from '@/domain/patients/store/PatientsReducer';
@@ -38,6 +39,7 @@ const appReducer = combineReducers({
   availability: availabilityReducer,
   blockDays: blockDaysReducer,
   communications: communicationsReducer,
+  logs: logsReducer,
   notes: notesReducer,
   notifications: notificationsReducer,
   patients: patientsReducer,

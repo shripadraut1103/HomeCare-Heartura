@@ -9,9 +9,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandLogo } from '@/components/BrandLogo';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { PasswordVisibilityToggle } from '@/components/ui/PasswordVisibilityToggle';
 import { Button } from '@/components/ui/Button';
 import { FormTextField } from '@/components/ui/FormTextField';
+import { PasswordVisibilityToggle } from '@/components/ui/PasswordVisibilityToggle';
 import { Radius, Shadows, Spacing } from '@/constants/Theme';
 import {
   ForgotPasswordSheet,
@@ -20,6 +20,7 @@ import {
 import { useLoginForm } from '@/domain/auth/hooks/useLoginForm';
 import { useTheme } from '@/hooks/useTheme';
 import { useAppSelector } from '@/store/hooks';
+import { APP_VERSION } from '@/utils/appVersion';
 
 const FORM_MAX_WIDTH = 420;
 
@@ -63,7 +64,7 @@ export default function LoginScreen() {
                 control={control}
                 name="organization"
                 label="Organization"
-                placeholder="e.g. hope"
+                placeholder="Organization name"
                 autoCapitalize="none"
                 autoCorrect={false}
                 autoComplete="organization"
@@ -142,6 +143,9 @@ export default function LoginScreen() {
             ) : null}
           </ThemedView>
         </KeyboardAwareScrollView>
+        <ThemedText themeColor="textSecondary" style={styles.version}>
+          Version {APP_VERSION}
+        </ThemedText>
       </SafeAreaView>
       <ForgotPasswordSheet ref={forgotPasswordSheet} />
     </ThemedView>
@@ -201,5 +205,12 @@ const styles = StyleSheet.create({
   },
   faceId: {
     marginTop: Spacing.four,
+  },
+  version: {
+    textAlign: 'center',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: 400,
+    paddingBottom: Spacing.two,
   },
 });

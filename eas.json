@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 27.11.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -11,11 +11,15 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "autoIncrement": "version"
       },
       "env": {
         "EXPO_PUBLIC_APP_ENV": "dev",
         "EXPO_PUBLIC_API_URL": "https://d30s9lo6ha6axd.cloudfront.net"
+      },
+      "ios": {
+        "autoIncrement": "version"
       }
     },
     "qa": {
@@ -26,7 +30,12 @@
       }
     },
     "production": {
-      "autoIncrement": true
+      "android": {
+        "autoIncrement": "version"
+      },
+      "ios": {
+        "autoIncrement": "version"
+      }
     }
   },
   "submit": {

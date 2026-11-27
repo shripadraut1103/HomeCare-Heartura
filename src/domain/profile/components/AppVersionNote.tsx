@@ -1,17 +1,15 @@
-import Constants from 'expo-constants';
 import { StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/ThemedText';
 import { useProfile } from '@/domain/profile/hooks/useProfile';
-
-const appVersion = (Constants.expoConfig?.version ?? '1.0').split('.').slice(0, 2).join('.');
+import { APP_VERSION } from '@/utils/appVersion';
 
 export function AppVersionNote() {
   const { agency } = useProfile();
 
   return (
     <ThemedText themeColor="textSecondary" style={styles.note}>
-      Heartura Provider {appVersion} · {agency.name}
+      Heartura Provider {APP_VERSION} · {agency.name}
     </ThemedText>
   );
 }

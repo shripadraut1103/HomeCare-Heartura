@@ -9,35 +9,39 @@ import { TabPanel } from '@/components/ui/TabPanel';
 import { Spacing } from '@/constants/Theme';
 import { ActivityLogList } from '@/domain/logs/components/ActivityLogList';
 import { VisitLogList } from '@/domain/logs/components/VisitLogList';
-import { useActivityLog, useVisitLog } from '@/domain/logs/hooks/useLogs';
-import type { LogsTab, VisitLogEntry } from '@/domain/logs/interfaces/LogInterfaces';
+import type {
+  ActivityLogState,
+  LogsTab,
+  VisitLogState,
+} from '@/domain/logs/interfaces/LogInterfaces';
 import { useTheme } from '@/hooks/useTheme';
-import { formatMonthDay } from '@/utils/dateFormat';
+import { useAppSelector } from '@/store/hooks';
+import { formatMonthDay, parseIsoDate } from '@/utils/dateFormat';
 
 const TABS: readonly Segment<LogsTab>[] = [
   { value: 'activity', label: 'Activity' },
   { value: 'visits', label: 'Visit log' },
 ];
 
-const describeVisitLog = (entries: VisitLogEntry[]) => {
-  const count = `${entries.length} ${entries.length === 1 ? 'visit' : 'visits'}`;
-  if (entries.length === 0) return count;
-  const times = entries.map((entry) => new Date(entry.startsAt).getTime());
-  const first = formatMonthDay(new Date(Math.min(...times)));
-  const last = formatMonthDay(new Date(Math.max(...times)));
-  return `${count} · ${first} – ${last}`;
+const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+
+const describeActivity = ({ loaded, total }: ActivityLogState) =>
+  loaded ? plural(total, 'entry', 'entries') : '';
+
+const describeVisitLog = ({ summary, dateFrom, dateTo }: VisitLogState) => {
+  if (!summary || !dateFrom || !dateTo) return '';
+  const range = `${formatMonthDay(parseIsoDate(dateFrom))} – ${formatMonthDay(parseIsoDate(dateTo))}`;
+  const notSigned = summary.notSigned > 0 ? [`${summary.notSigned} not signed`] : [];
+  return [plural(summary.visits, 'visit', 'visits'), range, ...notSigned].join(' · ');
 };
 
 export default function LogsScreen() {
   const theme = useTheme();
   const [tab, setTab] = useState<LogsTab>('activity');
-  const activity = useActivityLog();
-  const visits = useVisitLog();
+  const activity = useAppSelector((state) => state.logs.activity);
+  const visitLog = useAppSelector((state) => state.logs.visitLog);
 
-  const subtitle =
-    tab === 'activity'
-      ? `${activity.length} ${activity.length === 1 ? 'entry' : 'entries'}`
-      : describeVisitLog(visits);
+  const subtitle = tab === 'activity' ? describeActivity(activity) : describeVisitLog(visitLog);
 
   return (
     <ThemedView type="backgroundScreen" style={styles.container}>
@@ -50,13 +54,7 @@ export default function LogsScreen() {
           ]}>
           <SegmentedControl segments={TABS} value={tab} onChange={setTab} />
         </View>
-        <TabPanel tab={tab}>
-          {tab === 'activity' ? (
-            <ActivityLogList entries={activity} />
-          ) : (
-            <VisitLogList entries={visits} />
-          )}
-        </TabPanel>
+        <TabPanel tab={tab}>{tab === 'activity' ? <ActivityLogList /> : <VisitLogList />}</TabPanel>
       </SafeAreaView>
     </ThemedView>
   );
